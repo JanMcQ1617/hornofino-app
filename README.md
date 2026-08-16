@@ -1,56 +1,197 @@
-# Welcome to your Expo app 👋
+# HORNOFINO — app de pedidos y recompensas
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo (React Native + expo-router) ordering app for HORNOFINO, the Puerto Rico
+bakery chain (3 stores) owned by McQueeny Group. Spanish (es-PR) throughout.
+Light theme matching the website exactly: verde `#01A04A`, naranja `#EF5324`,
+marfil/paper surfaces, Petrona (display) + Work Sans (UI), tabular numerals on
+every price. Orange buttons always carry dark ink text (`#1A130A`) — orange
+fails contrast against white.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run it
 
 ```bash
-npm run reset-project
+cd ~/Projects/hornofino-app
+npm install
+npx expo start          # then press i (iOS simulator), a (Android), or scan with Expo Go
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Button language (client directive 2026-08-11, mirrors the site): square slabs
+(radius 10, 12 for floating/large), zero borders/outlines. Primary = orange
+gradient slab (`GradientSlab` in `src/components/buttons.tsx`, drawn with
+react-native-svg — no extra dependency) with ink text and a soft ambient
+shadow; secondary = borderless soft green-tinted fill. Labels/badges may stay
+pill; buttons never.
 
-### Other setup steps
+Sanity checks used before shipping:
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+npx tsc --noEmit                  # clean
+npx expo export --platform ios    # bundles clean (dist/, ~5MB with assets)
+```
 
-## Learn more
+## How the account works (no passwords, ever)
 
-To learn more about developing your project with Expo, look at the following resources:
+There are no logins. The **Horno Rewards card code (6 characters) IS the
+account**:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- "Únete gratis" on the **Mi QR** tab asks for a first name only →
+  `POST /api/join` → the server returns a card `{code, name, stamps, goal, rewards[]}`.
+- The card is stored locally (AsyncStorage) and rendered as a QR (generated
+  on-device with `react-native-qrcode-svg` — no network, no external QR service).
+- Every order placed while a card exists sends `card: CODE` so delivery
+  auto-stamps. 6 stamps = free quesito; pending rewards appear as `QSTO-XXXX`
+  codes on the card.
+- Ordering **never requires** a card or a name beyond "¿a nombre de quién?".
 
-## Join the community
+If the user deletes the app, the card code is the only way back in — the code
+is shown big on Mi QR and Cuenta on purpose.
 
-Join our community of developers creating universal apps.
+## Screens
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+| Tab | What it does |
+|---|---|
+| **Inicio** | Full-bleed Pura Vida-style home: the photo slideshow (real bundled food photography, ~4s crossfade via RN Animated, reduced-motion → static first slide, pauses while touched; slides in `src/components/hero-slideshow.tsx` are the drop-in swap point for Jan's Light dish photos) is the full-screen background with gradient scrims; a marfil header band fading into the photo holds "Buenas, {nombre}" + "VELANDO TU SALUD" + the compact store chip, with a stacked "HORNO REWARDS / {stamps} de 6 / SELLOS" counter (real sellos, never invented points; join prompt when no card); a floating reward card appears only with a real QSTO code ("PREMIO DESBLOQUEADO 🥐 · Muéstralo en caja") or as "YA CASI" encouragement at 4-5 stamps; bottom: optional "Repetir lo de siempre" chip + twin slab CTAs "ORDENA AHORA" (gradient) and "ESCANEA EN TIENDA" (frosted dark) → Mi QR. Active-order chip → tracking |
+| **Ordenar** | **Light-first**: the HORNOFINO Light draft menu as the featured experience (big plate cards with engraved line-art placeholders, section intros, "Idea · se estrena pronto" stamps, honest "Probando lo nuevo · Borrador" framing). The full regular catalog is demoted to a linked card — "El menú de siempre · 239 delicias" → `/menu-completo` |
+| **Menú completo** (stack) | The original full ordering experience, unchanged: 13 category photo-chips with precise jumps, one-tap add with haptic, variant bottom sheet, persistent cart bar |
+| **Mi QR** | Full rewards system: QR front-and-center, 2×3 punch card (bread stamps, pop animation + haptic when new stamps arrive vs last seen), reward wallet (QSTO cards with celebration state for new ones), lifetime "Ya te has ganado N", and "Tu actividad" from the API's `history` field (gracefully hidden on older deploys); one-field join flow if no card |
+| **Cuenta** | Name (editable), card code, previous orders (server `my-orders` with local fallback), store preference, McQueeny Group footer + site link |
+
+The tab bar is a FLOATING rounded container (custom `tabBar` in
+`src/components/floating-tab-bar.tsx` — marfil at 95%, radius 22, detached
+with 14px margins, soft shadow, tiny caps labels, same SVG icons; typed
+structurally because expo-router SDK 57 vendors bottom-tabs without a public
+types subpath). Tab screens pad their scroll bottoms with
+`insets.bottom + TAB_BAR_CLEARANCE`, and `CartBar` takes a `bottomOffset`
+prop to float above the bar inside tabs (stack screens keep the default).
+
+Cold-start order flow (store already picked): **Ordenar → El menú de siempre →
++ on item → cart bar → Enviar pedido**. Repeat order from Inicio = 2 taps.
+
+## The Light-first pivot (2026-08-11)
+
+The app's personality is "light y saludable": the Ordenar tab leads with the
+**HORNOFINO Light** menu (15 idea plates in 5 sections, generated from the
+site's `MENU_LIGHT` into `src/lib/menu-light.ts`).
+
+Honesty rules, enforced in code:
+
+- `LIGHT_MENU_READY = false` (mirrors the site's flag). While false, Light
+  plates carry **no prices and no add-to-cart** — the server's
+  menu-prices.json doesn't know them, so orders would fail anyway. They render
+  with "Probando lo nuevo · Borrador" and "Idea · se estrena pronto" stamps.
+- Plate images are **explicit placeholders**: engraved line-art illustrations
+  (`src/components/plate-art.tsx`, react-native-svg, matching the site's
+  mural/engraving style — batida glass, steaming bowl, tostada, parfait cup,
+  revoltillo pan, etc., picked by keyword via `plateKindFor`). No fake food
+  photography for dishes that don't exist. When Jan supplies real photos,
+  swap the `<PlateArt>` tile for an `<Image>` of the same size — the card
+  layout takes the drop-in unchanged.
+- The regular menu stays fully orderable (it's the only revenue path):
+  demoted to the "El menú de siempre" card → `/menu-completo`, where the
+  entire original list + cart flow lives untouched.
+
+**To flip Light plates to orderable when the client approves:** the server
+adds the plates to menu-prices.json with real ids/prices; regenerate or edit
+`src/lib/menu-light.ts` to add those `id`/`price` fields and set
+`LIGHT_MENU_READY = true`; then give the plate cards the same add-to-cart
+control the regular menu uses (cart/checkout already handles any priced id).
+
+## Live API (production, used as-is)
+
+Base: `https://hornofino.netlify.app` — client in `src/lib/api.ts`.
+The server always reprices by item id; the app's totals are display-only.
+
+- `POST /api/join {name}` → creates the rewards card.
+- `GET /api/card?c=CODE` → card refresh. Rate-limited 30/min/IP — the app
+  throttles itself to at most one refresh per 20 s.
+- `POST /api/order {store, items:[{id, qty, variant?}], name, note?, card?}` →
+  `{orderId: "HF-XXXX", total, estimate, store}`.
+- `GET /api/order-status?id=HF-XXXX` → polled every 15 s on the tracking
+  screen; statuses `nueva → preparando → lista → entregada` (or `cancelada`).
+  Polling stops on terminal states.
+- `GET /api/my-orders?c=CODE` → **being deployed**; until it exists the server
+  returns Netlify's HTML 404, which the client treats as an empty list and
+  Cuenta falls back to the orders saved on this phone.
+
+## Menu data
+
+`src/lib/menu.ts` is **generated** from the website's `menu-data.js`
+(13 sections, 239 items). Item `id`s are the server's pricing keys —
+**never edit them by hand**. Flags:
+
+- `from: true` → "desde" price; cart and totals switch to "Total estimado"
+  (server flags `estimate: true`).
+- `variants` → sizes (e.g. 25/50 pzs) picked in a bottom sheet. **The order
+  payload sends the variant's 0-based numeric INDEX** into the item's
+  `variants` array — never the label. The server does
+  `parseInt(item.variant)` and requires `0 <= vi < variants.length`; a label
+  like `"25 pzs"` parses to 25, falls out of range, and the line is silently
+  dropped from the order. Labels are display-only. The tracking screen
+  translates indexes coming back from `order-status` into labels again.
+- `ask: true` (the 6 Cremas y Sopas) → no published price; shown in the menu
+  as "Se pide en tienda" and not addable — the API cannot price them.
+
+Section photos live in `assets/menu/*.webp` (copied from the website's
+`menu-hf/`, webp variants for size). Map in `src/lib/section-images.ts`.
+
+## What's live vs. local
+
+**Live:** join, card refresh, placing orders, order status, my-orders (once
+deployed). **Local only:** store preference, name, cart, last order (for
+2-tap repeat), and a 30-order local history used as fallback. Nothing else is
+mocked — there is no fake data anywhere in the app.
+
+## Structure
+
+```
+src/
+  app/            expo-router: _layout (fonts+provider), (tabs)/{index,ordenar,qr,cuenta},
+                  carrito (modal), pedido/[id] (tracking)
+  components/     icons (custom SVG), buttons, sheet, store-sheet, variant-sheet,
+                  cart-bar, stamps, empty-state
+  lib/            theme, menu (generated), stores, api, state (AppProvider), format,
+                  section-images
+assets/           brand logo, 13 menu photos, generated app icons ("H." on verde)
+```
+
+Notes for future work: fonts are imported **per weight** on purpose
+(`@expo-google-fonts/petrona/700Bold` etc.) — importing the package root drags
+every ttf of the family into the bundle. App icons were generated with PIL from
+Petrona Bold (`H.` marfil on verde, orange dot); regenerate if the brand mark
+changes.
+
+---
+
+## Avisos push ("tu orden está lista")
+
+Cómo está armado (2026-08-13):
+
+- El app pide permiso **en el checkout**, no al arrancar (`src/lib/push.ts`).
+  iOS solo deja preguntar una vez; pedirlo en frío es como se pierde el sí.
+- El token de Expo **viaja pegado a la orden** — `placeOrder({ pushToken })` →
+  el servidor lo guarda en el blob de la orden. Así funciona igual con tarjeta
+  o de invitado, sin registro de dispositivos aparte.
+- El envío sale de `handleSetStatus` en el `api.mjs` de mcqueeny-group, solo
+  cuando el estado **cambia** a `preparando` o `lista`. `entregada` no avisa
+  (ya estás en el mostrador) y `cancelada` merece una llamada.
+- Tocar el aviso abre esa orden (`src/app/_layout.tsx`), incluso con el app
+  cerrada del todo.
+- Un token muerto (`DeviceNotRegistered`) se borra de la orden: si se sigue
+  usando, Expo bloquea el proyecto.
+
+### Falta para que funcione de verdad
+
+Nada de esto se puede hacer sin las cuentas de Jan, y hasta que se haga
+`getPushToken()` devuelve `null` en silencio y el app funciona igual pero sin
+avisos:
+
+1. `npx eas-cli@latest login`
+2. `npx eas-cli@latest init` — crea el proyecto y escribe
+   `extra.eas.projectId` en `app.json`. **Sin ese id no hay token.**
+3. `npx eas-cli@latest credentials` → iOS → Push Notifications → Set up.
+   Sube (o crea) la llave APNs `.p8` de la cuenta de Apple Developer.
+
+Ojo con el entorno: `ios/HORNOFINO/HORNOFINO.entitlements` trae
+`aps-environment = development`, que es lo correcto para lo que instala
+`expo run:ios`. Para TestFlight o App Store hay que cambiarlo a `production`
+o los avisos se mandan al sandbox y no llegan.

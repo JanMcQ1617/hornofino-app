@@ -1,0 +1,534 @@
+// El menú de siempre — la carta completa (239 delicias), totalmente ordenable.
+// Hoy es la única vía de ingresos: el flujo de canasta/checkout NO se toca.
+// Un toque añade; la barra de canasta siempre a mano. Lista aplanada
+// (headers + items) con offsets precalculados para los chips de categoría.
+
+import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type StyleProp,
+  type TextStyle,
+} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useDerivedValue,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+
+import { CartBar } from '@/components/cart-bar';
+import { MinusIcon, PlusIcon } from '@/components/icons';
+import { PressableScale } from '@/components/motion';
+import { StoreChip, StoreSheet } from '@/components/store-sheet';
+import { VariantSheet } from '@/components/variant-sheet';
+import { menuPrice } from '@/lib/format';
+import { MENU_SECTIONS, type MenuItem, type MenuSection } from '@/lib/menu';
+import { SECTION_IMAGES } from '@/lib/section-images';
+import { useApp } from '@/lib/state';
+import { colors, fonts, motion, radius, space } from '@/lib/theme';
+
+/**
+ * Chip de categoría. La placa de menta CRECE por detrás de la foto en vez de
+ * aparecer de golpe: el ojo sigue un objeto que llega, no un color que cambia.
+ * Escala desde 0.85 porque a tamaño 62 un arranque menor se ve como un parpadeo.
+ */
+function SectionChip({
+  section,
+  active,
+  onPress,
+}: {
+  section: MenuSection;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const reduced = useReducedMotion();
+  const p = useDerivedValue(() =>
+    reduced
+      ? active
+        ? 1
+        : 0
+      : withSpring(active ? 1 : 0, motion.spring),
+  );
+  const plateStyle = useAnimatedStyle(() => ({
+    opacity: p.value,
+    transform: [{ scale: 0.85 + 0.15 * p.value }],
+  }));
+  const labelStyle = useAnimatedStyle(() => ({
+    // el peso no se puede animar, pero el color sí acompaña al muelle
+    opacity: reduced ? 1 : 0.65 + 0.35 * p.value,
+  }));
+
+  return (
+    <PressableScale
+      onPress={onPress}
+      noHaptic
+      accessibilityRole="button"
+      accessibilityLabel={`Ir a ${section.title}`}
+      accessibilityState={{ selected: active }}
+      style={styles.chip}
+    >
+      <View style={styles.chipPhotoWrap}>
+        <Animated.View pointerEvents="none" style={[styles.chipPlate, plateStyle]} />
+        <Image source={SECTION_IMAGES[section.photo]} style={styles.chipPhoto} contentFit="cover" />
+      </View>
+      <Animated.Text
+        style={[styles.chipLabel, active && styles.chipLabelActive, labelStyle]}
+        numberOfLines={1}
+      >
+        {section.title}
+      </Animated.Text>
+    </PressableScale>
+  );
+}
+
+/**
+ * El número de cantidad REBOTA cuando cambia — esa es la confirmación de que
+ * "sí, se añadió", sin necesidad de un toast.
+ *
+ * Ojo: la animación la dispara el CAMBIO DE VALOR, no el montaje. Esta lista
+ * está virtualizada (239 filas), así que una fila que vuelve a entrar en
+ * pantalla se remonta; con `entering` los steppers estarían apareciendo solos
+ * mientras uno hace scroll. Comparando contra el valor anterior, un remonte
+ * simplemente pinta el estado final.
+ */
+function QtyBump({ qty, style }: { qty: number; style: StyleProp<TextStyle> }) {
+  const reduced = useReducedMotion();
+  const scale = useSharedValue(1);
+  const prev = useRef(qty);
+
+  useEffect(() => {
+    if (qty !== prev.current && !reduced) {
+      scale.set(
+        withSequence(withSpring(1.25, { damping: 9, stiffness: 340 }), withSpring(1, motion.spring)),
+      );
+    }
+    prev.current = qty;
+  }, [qty, reduced, scale]);
+
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return <Animated.Text style={[style, animated]}>{qty}</Animated.Text>;
+}
+
+const ROW_H = 76;
+const HEADER_H = 150;
+
+type Row =
+  | { type: 'header'; section: MenuSection }
+  | { type: 'item'; item: MenuItem; sectionId: string };
+
+const ROWS: Row[] = [];
+const SECTION_FIRST_INDEX: Record<string, number> = {};
+for (const section of MENU_SECTIONS) {
+  SECTION_FIRST_INDEX[section.id] = ROWS.length;
+  ROWS.push({ type: 'header', section });
+  for (const item of section.items) {
+    ROWS.push({ type: 'item', item, sectionId: section.id });
+  }
+}
+
+const HEIGHTS = ROWS.map((r) => (r.type === 'header' ? HEADER_H : ROW_H));
+const OFFSETS: number[] = [];
+{
+  let acc = 0;
+  for (const h of HEIGHTS) {
+    OFFSETS.push(acc);
+    acc += h;
+  }
+}
+
+/** Sección visible dada la posición de scroll (búsqueda binaria sobre offsets). */
+function sectionAtOffset(y: number): string {
+  let lo = 0;
+  let hi = OFFSETS.length - 1;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (OFFSETS[mid] <= y) lo = mid;
+    else hi = mid - 1;
+  }
+  const row = ROWS[lo];
+  return row.type === 'header' ? row.section.id : row.sectionId;
+}
+
+function ItemRow({
+  item,
+  onAdd,
+  onOpenVariants,
+  qty,
+}: {
+  item: MenuItem;
+  qty: number;
+  onAdd: (item: MenuItem) => void;
+  onOpenVariants: (item: MenuItem) => void;
+}) {
+  const { decrementLine } = useApp();
+  const priceLabel = menuPrice(item);
+  const hasVariants = !!item.variants?.length;
+
+  return (
+    <View style={rowStyles.row}>
+      <View style={rowStyles.info}>
+        <Text style={rowStyles.name} numberOfLines={2}>
+          {item.name}
+        </Text>
+        <Text style={[rowStyles.price, item.ask && rowStyles.priceAsk]}>{priceLabel}</Text>
+      </View>
+      {item.ask ? null : hasVariants ? (
+        <PressableScale
+          onPress={() => onOpenVariants(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`${item.name}: escoger tamaño y añadir`}
+          style={[rowStyles.addBtn, qty > 0 && rowStyles.addBtnActive]}
+        >
+          {qty > 0 ? (
+            <QtyBump qty={qty} style={rowStyles.qtyBadge} />
+          ) : (
+            <PlusIcon size={17} color={colors.ink} strokeWidth={2.6} />
+          )}
+        </PressableScale>
+      ) : qty > 0 ? (
+        <View style={rowStyles.stepper}>
+          <Pressable
+            onPress={() => {
+              decrementLine(item.id);
+              Haptics.selectionAsync().catch(() => {});
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Quitar un ${item.name}`}
+            style={({ pressed }) => [rowStyles.stepBtn, pressed && rowStyles.pressed]}
+          >
+            <MinusIcon size={15} color={colors.ink} strokeWidth={2.4} />
+          </Pressable>
+          <QtyBump qty={qty} style={rowStyles.stepQty} />
+          <Pressable
+            onPress={() => onAdd(item)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Añadir otro ${item.name}`}
+            style={({ pressed }) => [rowStyles.stepBtn, rowStyles.stepBtnPlus, pressed && rowStyles.pressed]}
+          >
+            <PlusIcon size={15} color={colors.ink} strokeWidth={2.4} />
+          </Pressable>
+        </View>
+      ) : (
+        <PressableScale
+          onPress={() => onAdd(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`Añadir ${item.name}, ${priceLabel}`}
+          style={rowStyles.addBtn}
+        >
+          <PlusIcon size={17} color={colors.ink} strokeWidth={2.6} />
+        </PressableScale>
+      )}
+    </View>
+  );
+}
+
+export default function MenuCompletoScreen() {
+  const { addToCart, qtyInCart, cartCount } = useApp();
+  const [variantItem, setVariantItem] = useState<MenuItem | null>(null);
+  const [storeSheetOpen, setStoreSheetOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState(MENU_SECTIONS[0].id);
+
+  const listRef = useRef<FlatList<Row>>(null);
+  const chipsRef = useRef<FlatList<MenuSection>>(null);
+  const scrollingFromChip = useRef(false);
+
+  const add = useCallback(
+    (item: MenuItem) => {
+      addToCart(item);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    },
+    [addToCart],
+  );
+
+  const jumpTo = useCallback((sectionId: string) => {
+    const index = SECTION_FIRST_INDEX[sectionId];
+    if (index == null) return;
+    scrollingFromChip.current = true;
+    setActiveSection(sectionId);
+    listRef.current?.scrollToOffset({ offset: OFFSETS[index], animated: true });
+    setTimeout(() => {
+      scrollingFromChip.current = false;
+    }, 600);
+  }, []);
+
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (scrollingFromChip.current) return;
+      const id = sectionAtOffset(e.nativeEvent.contentOffset.y + 10);
+      setActiveSection((prev) => {
+        if (prev === id) return prev;
+        const chipIndex = MENU_SECTIONS.findIndex((s) => s.id === id);
+        if (chipIndex >= 0) {
+          chipsRef.current?.scrollToIndex({ index: chipIndex, viewPosition: 0.5, animated: true });
+        }
+        return id;
+      });
+    },
+    [],
+  );
+
+  const renderRow = useCallback(
+    ({ item: row }: { item: Row }) => {
+      if (row.type === 'header') {
+        const img = SECTION_IMAGES[row.section.photo];
+        return (
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionBanner}>
+              {img ? (
+                <Image
+                  source={img}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  transition={150}
+                  accessibilityLabel={row.section.title}
+                />
+              ) : null}
+              <View style={styles.sectionScrim} />
+              <Text style={styles.sectionTitle}>{row.section.title}</Text>
+            </View>
+          </View>
+        );
+      }
+      return (
+        <ItemRow
+          item={row.item}
+          qty={qtyInCart(row.item.id)}
+          onAdd={add}
+          onOpenVariants={setVariantItem}
+        />
+      );
+    },
+    [add, qtyInCart],
+  );
+
+  const chips = useMemo(
+    () => (
+      <FlatList
+        ref={chipsRef}
+        data={MENU_SECTIONS}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(s) => s.id}
+        contentContainerStyle={styles.chipsContent}
+        onScrollToIndexFailed={() => {}}
+        renderItem={({ item: section }) => (
+          <SectionChip
+            section={section}
+            active={section.id === activeSection}
+            onPress={() => jumpTo(section.id)}
+          />
+        )}
+      />
+    ),
+    [activeSection, jumpTo],
+  );
+
+  return (
+    <View style={styles.root}>
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <View />
+          <StoreChip onPress={() => setStoreSheetOpen(true)} />
+        </View>
+      </View>
+      {chips}
+      <FlatList
+        ref={listRef}
+        data={ROWS}
+        renderItem={renderRow}
+        keyExtractor={(row, i) => (row.type === 'header' ? `h-${row.section.id}` : `${row.item.id}-${i}`)}
+        getItemLayout={(_, index) => ({ length: HEIGHTS[index], offset: OFFSETS[index], index })}
+        onScroll={onScroll}
+        scrollEventThrottle={80}
+        initialNumToRender={14}
+        maxToRenderPerBatch={16}
+        windowSize={9}
+        contentContainerStyle={{ paddingBottom: cartCount > 0 ? 120 : space.xxl }}
+        showsVerticalScrollIndicator={false}
+      />
+      <CartBar />
+      <VariantSheet item={variantItem} onClose={() => setVariantItem(null)} />
+      <StoreSheet visible={storeSheetOpen} onClose={() => setStoreSheetOpen(false)} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.marfil,
+  },
+  header: {
+    paddingHorizontal: space.lg,
+    paddingTop: space.sm,
+    paddingBottom: space.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.md,
+  },
+  chipsContent: {
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    gap: space.md,
+  },
+  chip: {
+    alignItems: 'center',
+    width: 74,
+  },
+  // Activo = placa verde detrás de la foto (relleno, nunca anillo/borde).
+  chipPhotoWrap: {
+    width: 62,
+    height: 62,
+    borderRadius: 14,
+    padding: 3,
+    backgroundColor: 'transparent',
+  },
+  chipPlate: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 14,
+    backgroundColor: colors.verde,
+  },
+  chipPhoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 11,
+    overflow: 'hidden',
+  },
+  chipLabel: {
+    marginTop: 5,
+    fontFamily: fonts.uiMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+    maxWidth: 74,
+  },
+  chipLabelActive: {
+    fontFamily: fonts.uiBold,
+    color: colors.verdeInk,
+  },
+  sectionHeader: {
+    height: HEADER_H,
+    paddingHorizontal: space.lg,
+    paddingTop: space.xl,
+    paddingBottom: space.sm,
+  },
+  sectionBanner: {
+    flex: 1,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  sectionScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.scrim,
+  },
+  sectionTitle: {
+    fontFamily: fonts.display,
+    fontSize: 24,
+    color: colors.marfil,
+    paddingHorizontal: space.lg,
+    paddingBottom: space.md,
+  },
+});
+
+const rowStyles = StyleSheet.create({
+  row: {
+    height: ROW_H,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.lineSoft,
+  },
+  info: {
+    flex: 1,
+  },
+  name: {
+    fontFamily: fonts.uiSemi,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.ink,
+  },
+  price: {
+    marginTop: 2,
+    fontFamily: fonts.uiMedium,
+    fontSize: 13,
+    color: colors.inkSoft,
+    fontVariant: ['tabular-nums'],
+  },
+  priceAsk: {
+    fontFamily: fonts.displayItalic,
+    color: colors.inkFaint,
+  },
+  addBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.btn,
+    backgroundColor: colors.naranja,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addBtnActive: {
+    backgroundColor: colors.naranjaLuz,
+  },
+  qtyBadge: {
+    fontFamily: fonts.uiBold,
+    fontSize: 15,
+    color: colors.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  pressed: {
+    transform: [{ scale: 0.92 }],
+  },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.paper2,
+    borderRadius: radius.btn,
+    padding: 3,
+    gap: 2,
+  },
+  stepBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: colors.marfil,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnPlus: {
+    backgroundColor: colors.naranja,
+  },
+  stepQty: {
+    minWidth: 26,
+    textAlign: 'center',
+    fontFamily: fonts.uiBold,
+    fontSize: 15,
+    color: colors.ink,
+    fontVariant: ['tabular-nums'],
+  },
+});
