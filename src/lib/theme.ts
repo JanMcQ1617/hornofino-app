@@ -82,6 +82,16 @@ export const glass = {
   sheenTo: 'rgba(255, 255, 255, 0)',
   /** tinte que se le pasa al cristal nativo para que no salga azulado */
   nativeTint: 'rgba(255, 255, 255, 0.28)',
+  /**
+   * `strong` para la rama nativa. `expo-glass-effect` no expone un material
+   * más denso — solo `glassEffectStyle` y `tintColor` — así que la opacidad
+   * de la tinta es la única palanca que hay.
+   *
+   * El salto NO es proporcional al de la imitación (0.80 -> 0.93): ese mismo
+   * porcentaje aquí daría ~0.33 y no se vería. Está igualado por sensación,
+   * no por aritmética. Espejo de `nativeTintStrong` en Clink.
+   */
+  nativeTintStrong: 'rgba(255, 255, 255, 0.48)',
 } as const;
 
 // Familias tipográficas (cargadas en app/_layout.tsx).

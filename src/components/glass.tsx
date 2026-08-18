@@ -93,7 +93,16 @@ export function GlassSurface({
       <GlassView
         glassEffectStyle="regular"
         isInteractive={interactive}
-        tintColor={tone === 'menta' ? glass.fillMenta : glass.nativeTint}
+        // `strong` tiene que leerse AQUÍ también. Antes solo lo consumía la
+        // imitación (fillStrong), así que en iOS 26 la prop se caía en
+        // silencio: el llamador pedía cuerpo y recibía cristal normal.
+        tintColor={
+          tone === 'menta'
+            ? glass.fillMenta
+            : strong
+              ? glass.nativeTintStrong
+              : glass.nativeTint
+        }
         // La paleta es clara y no sigue la apariencia del sistema; 'auto'
         // oscurecería el material en modo oscuro y dejaría la tinta INK
         // colgada encima.
