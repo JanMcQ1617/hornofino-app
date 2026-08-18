@@ -54,6 +54,29 @@ const BAR_PAD = 6;
 /** cuánto se estira la pastilla a viaje completo. 18% se lee; 30% es caricatura */
 const STRETCH = 0.18;
 
+/**
+ * Muelle propio de la pastilla, MÁS RÁPIDO que `motion.spring`.
+ *
+ * El token compartido mueve doce cosas — hojas, barra de canasta, escala de
+ * pulsación — y a la pastilla se le pedía ir más rápido a ella sola, así que
+ * subirlo allí habría acelerado la app entera.
+ *
+ * El cambio es de VELOCIDAD, no de carácter. Se sube la frecuencia natural
+ * y se mantiene el amortiguamiento relativo, así el rebote es el mismo, solo
+ * que llega antes:
+ *
+ *   token compartido   ωn = √(220/0.9) = 15.6 rad/s   ζ = 18/(2√198)  = 0.64
+ *   pastilla           ωn = √(640/0.9) = 26.7 rad/s   ζ = 31/(2√576)  = 0.65
+ *
+ * ~1.7x más rápido con el mismo sobrepaso. El asentamiento pasa de ~0.40s a
+ * ~0.23s.
+ *
+ * El estirón no se resiente: `stretch` se deriva del retraso normalizado, y
+ * al arrancar el retraso vale 1 sea cual sea el muelle — el máximo se sigue
+ * alcanzando, solo que se resuelve antes.
+ */
+const PILL_SPRING = { damping: 31, stiffness: 640, mass: 0.9 } as const;
+
 type TabBarIconProps = { focused: boolean; color: string; size: number };
 
 type FloatingTabBarProps = {
@@ -96,8 +119,11 @@ function TabItem({
     if (reduced) return { transform: [{ scale: 1 }, { translateY: 0 }] };
     return {
       transform: [
-        { scale: withSpring(focused ? 1.08 : 1, motion.spring) },
-        { translateY: withSpring(focused ? -1 : 0, motion.spring) },
+        // Mismo muelle que la pastilla, no el compartido: el icono y la
+        // pastilla son UN solo gesto. Si la pastilla llega 1.7x antes que el
+        // icono que va cargando, la selección se parte en dos tiempos.
+        { scale: withSpring(focused ? 1.08 : 1, PILL_SPRING) },
+        { translateY: withSpring(focused ? -1 : 0, PILL_SPRING) },
       ],
     };
   });
@@ -126,7 +152,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
   const x = useDerivedValue(() =>
     reduced
       ? withTiming(targetX, { duration: motion.fast })
-      : withSpring(targetX, motion.spring),
+      : withSpring(targetX, PILL_SPRING),
   );
 
   /*
