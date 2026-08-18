@@ -69,6 +69,14 @@ export const glass = {
   rimTop: 'rgba(255, 255, 255, 0.95)',
   /** el resto del perímetro */
   rim: 'rgba(26, 19, 10, 0.10)',
+  /**
+   * El ÚNICO canto que recibe el cristal nativo (iOS 26+). Va más fuerte que
+   * `rim` porque en esa rama no hay brillo ni canto iluminado que lo
+   * acompañen — encima de una pantalla blanca es lo único que separa la
+   * barra del fondo. Espejo de `rimContour` en Clink; el alfa se mantiene
+   * igual en las dos apps aunque la tinta de cada paleta sea distinta.
+   */
+  rimContour: 'rgba(26, 19, 10, 0.16)',
   /** paradas del brillo, de arriba hacia abajo */
   sheenFrom: 'rgba(255, 255, 255, 0.65)',
   sheenTo: 'rgba(255, 255, 255, 0)',

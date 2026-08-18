@@ -100,6 +100,27 @@ export function GlassSurface({
         colorScheme="light"
         style={[{ borderRadius: cornerRadius, overflow: 'hidden' }, lift, style]}
       >
+        {/*
+         * El contorno. El cristal nativo trae su propio canto, pero se apoya
+         * en lo que tiene detrás: encima de una foto se lee solo, y encima de
+         * una pantalla blanca desaparece del todo. Este hairline es la
+         * silueta — sin él la rama nativa no tiene borde de ninguna clase,
+         * porque el `rim` y el `rimTop` viven únicamente en la imitación.
+         *
+         * Va aquí dentro y no como `borderWidth` del propio GlassView: es una
+         * vista nativa y el borde no se le aplica de forma fiable.
+         */}
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: cornerRadius,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: glass.rimContour,
+            },
+          ]}
+        />
         {children}
       </GlassView>
     );
