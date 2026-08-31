@@ -20,12 +20,12 @@ import {
 import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/components/buttons';
+import { GhostButton, PrimaryButton } from '@/components/buttons';
 import { TAB_BAR_CLEARANCE } from '@/components/floating-tab-bar';
 import { TicketIcon } from '@/components/icons';
 import { PunchCard } from '@/components/punch-card';
 import { stampsCopy } from '@/components/stamps';
-import { ApiError, type CardHistoryEntry } from '@/lib/api';
+import { ApiError, normalizeCardCode, type CardHistoryEntry } from '@/lib/api';
 import { relativeDate } from '@/lib/format';
 import { useApp } from '@/lib/state';
 import { getStore } from '@/lib/stores';
@@ -41,10 +41,32 @@ function viaCopy(via: CardHistoryEntry['via']): string {
 }
 
 function JoinCard() {
-  const { joinCard, name } = useApp();
+  const { joinCard, recoverCard, name } = useApp();
+  const [mode, setMode] = useState<'join' | 'recover'>('join');
   const [joinName, setJoinName] = useState(name);
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const swapMode = (next: 'join' | 'recover') => {
+    setMode(next);
+    setError(null);
+  };
+
+  // Al recuperar con éxito el card deja de ser null y esta tarjeta se
+  // desmonta sola — por eso no hay estado de "listo" que manejar aquí.
+  const recover = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await recoverCard(code);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'No pudimos traer tu tarjeta. Intenta otra vez.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const join = async () => {
     const trimmed = joinName.trim();
@@ -63,6 +85,53 @@ function JoinCard() {
       setBusy(false);
     }
   };
+
+  if (mode === 'recover') {
+    return (
+      <View style={styles.joinCard}>
+        <Text style={styles.joinKicker}>Horno Rewards</Text>
+        <Text style={styles.joinTitle}>Recupera tu tarjeta</Text>
+        <Text style={styles.joinBody}>
+          Escribe los 6 caracteres que salen debajo de tu QR. Tus sellos siguen ahí: la cuenta es
+          el código, no el teléfono.
+        </Text>
+        <TextInput
+          value={code}
+          onChangeText={(t) => {
+            // Normalizamos mientras escribe: minúsculas a mayúsculas y fuera
+            // espacios o guiones. Así lo que se ve es exactamente lo que se envía.
+            setCode(normalizeCardCode(t).slice(0, 6));
+            if (error) setError(null);
+          }}
+          placeholder="ABC234"
+          placeholderTextColor={colors.inkFaint}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          autoComplete="off"
+          maxLength={6}
+          returnKeyType="done"
+          onSubmitEditing={recover}
+          accessibilityLabel="El código de 6 caracteres de tu tarjeta"
+          style={[styles.joinInput, styles.codeInput]}
+        />
+        {error ? <Text style={styles.joinError}>{error}</Text> : null}
+        <PrimaryButton
+          label="Recuperar mi tarjeta"
+          loadingLabel="Buscando tu tarjeta…"
+          onPress={recover}
+          loading={busy}
+          disabled={code.length < 6}
+          accessibilityLabel="Recuperar mi tarjeta con el código"
+        />
+        <GhostButton
+          label="Mejor créame una nueva"
+          onPress={() => swapMode('join')}
+          disabled={busy}
+          accessibilityLabel="Volver a crear una tarjeta nueva"
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.joinCard}>
@@ -94,6 +163,12 @@ function JoinCard() {
         onPress={join}
         loading={busy}
         accessibilityLabel="Únete gratis a Horno Rewards"
+      />
+      <GhostButton
+        label="Ya tengo tarjeta"
+        onPress={() => swapMode('recover')}
+        disabled={busy}
+        accessibilityLabel="Ya tengo tarjeta, recuperarla con mi código"
       />
     </View>
   );
@@ -501,5 +576,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.uiMedium,
     fontSize: 13,
     color: colors.danger,
+  },
+  // El código se escribe como se muestra en la tarjeta: espaciado y centrado.
+  codeInput: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    letterSpacing: 6,
+    textAlign: 'center',
   },
 });

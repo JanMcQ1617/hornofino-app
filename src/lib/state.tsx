@@ -12,7 +12,14 @@ import React, {
   useState,
 } from 'react';
 
-import { getCard, joinRewards, type RewardsCard } from '@/lib/api';
+import {
+  ApiError,
+  getCard,
+  isCardCode,
+  joinRewards,
+  normalizeCardCode,
+  type RewardsCard,
+} from '@/lib/api';
 import { findMenuItem, type MenuItem, type MenuVariant } from '@/lib/menu';
 import type { StoreId } from '@/lib/stores';
 
@@ -82,6 +89,12 @@ type AppState = {
 
   card: RewardsCard | null;
   joinCard: (name: string) => Promise<RewardsCard>;
+  /**
+   * Vuelve a una tarjeta que ya existe, por su código. Es el camino de regreso
+   * tras borrar el app o cambiar de teléfono: sin esto el código local es la
+   * ÚNICA copia y los sellos quedan varados en el servidor para siempre.
+   */
+  recoverCard: (code: string) => Promise<RewardsCard>;
   refreshCard: () => Promise<void>;
 
   cart: CartLine[];
@@ -202,6 +215,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       persistCard(newCard);
       if (!name.trim() && newCard.name) setName(newCard.name);
       return newCard;
+    },
+    [name, persistCard, setName],
+  );
+
+  // El código ES la cuenta: si el servidor lo reconoce, esta es la misma
+  // tarjeta con sus sellos intactos. Validamos la forma aquí para no gastar
+  // una petición (ni el rate limit) en algo que ya sabemos que va a fallar.
+  const recoverCard = useCallback(
+    async (rawCode: string) => {
+      const code = normalizeCardCode(rawCode);
+      if (!isCardCode(code)) {
+        throw new ApiError('Ese código no cuadra — son 6 caracteres, como el de tu QR.', 400);
+      }
+      const found = await getCard(code);
+      persistCard(found);
+      // Si este teléfono todavía no tiene nombre, adoptamos el de la tarjeta.
+      if (!name.trim() && found.name) setName(found.name);
+      return found;
     },
     [name, persistCard, setName],
   );
@@ -349,6 +380,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setName,
       card,
       joinCard,
+      recoverCard,
       refreshCard,
       cart,
       cartCount,
@@ -373,6 +405,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setName,
       card,
       joinCard,
+      recoverCard,
       refreshCard,
       cart,
       cartCount,

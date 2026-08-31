@@ -141,6 +141,25 @@ export async function joinRewards(name: string): Promise<RewardsCard> {
 }
 
 /** Lee la tarjeta por código. Límite: 30/min por IP — no abusar. */
+/**
+ * El alfabeto del servidor (ABCDEFGHJKMNPQRSTUVWXYZ23456789) deja fuera la I,
+ * la L, la O, el 0 y el 1 a propósito: son las que se confunden al leer un
+ * código escrito a mano. Por eso aquí NO se "corrige" ninguna letra — como
+ * ningún par ambiguo es válido, adivinar sería inventar. Solo se limpia lo que
+ * sobra (espacios, guiones) y se sube a mayúsculas, igual que hace el servidor
+ * antes de buscar.
+ */
+export function normalizeCardCode(raw: string): string {
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/** El mismo patrón que valida el servidor — nos ahorra un viaje que ya sabemos que falla. */
+export function isCardCode(code: string): boolean {
+  return /^[A-Z2-9]{6}$/.test(code);
+}
+
+/** Busca una tarjeta existente por su código. Es también el camino de vuelta
+ *  cuando alguien borra el app o cambia de teléfono. */
 export async function getCard(code: string): Promise<RewardsCard> {
   const data = await request<{ card: RewardsCard }>(`/api/card?c=${encodeURIComponent(code)}`);
   return data.card;

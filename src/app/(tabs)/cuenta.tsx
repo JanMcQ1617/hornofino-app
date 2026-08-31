@@ -159,7 +159,7 @@ export default function CuentaScreen() {
               <QrIcon size={20} color={colors.verdeInk} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>Horno Rewards</Text>
-                <Text style={styles.hint}>Todavía no tienes tarjeta — únete gratis en Mi QR.</Text>
+                <Text style={styles.hint}>Únete gratis en Mi QR — o recupera la tuya con tu código.</Text>
               </View>
               <ChevronRightIcon size={16} color={colors.inkFaint} />
             </PressableScale>
