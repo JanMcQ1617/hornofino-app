@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    THIS FILE EXISTS TO SURVIVE A PREBUILD.
+
+    `ios/` is gitignored here (see .gitignore) and `expo prebuild` regenerates
+    it from scratch, so DEVELOPMENT_TEAM living only in
+    ios/HORNOFINO.xcodeproj/project.pbxproj is one `prebuild --clean` away from
+    gone — and the next build fails with "Signing for HORNOFINO requires a
+    development team." scripts/build-ios.sh reads teamID out of THIS file,
+    at the repo root, which is tracked precisely so it cannot be wiped.
+
+    Same reason and same shape as Sipply's ExportOptions.plist.
+  -->
+
+  <!--
+    TestFlight and the App Store are the same upload; "app-store-connect"
+    is the method for both. A build only reaches TestFlight because that
+    is where App Store Connect puts it before you submit for sale.
+  -->
+  <key>method</key>
+  <string>app-store-connect</string>
+
+  <key>teamID</key>
+  <string>W4X2M7ZC79</string>
+
+  <!--
+    Let Xcode fetch the distribution certificate and provisioning profile.
+    The development profile used for devicectl installs is NOT valid for
+    upload, so this has to mint a distribution one on first archive.
+  -->
+  <key>signingStyle</key>
+  <string>automatic</string>
+
+  <!--
+    Symbols go up so TestFlight crash reports are readable. Without this a
+    crash from a tester is an address, not a stack trace.
+  -->
+  <key>uploadSymbols</key>
+  <true/>
+
+  <!--
+    Off deliberately: whatever is in app.json is what ships. Nothing bumps
+    the build number for you, and App Store Connect refuses a duplicate
+    CFBundleVersion at UPLOAD — after the archive and the export.
+  -->
+  <key>manageAppVersionAndBuildNumber</key>
+  <false/>
+</dict>
+</plist>

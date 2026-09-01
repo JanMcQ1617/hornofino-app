@@ -11,7 +11,8 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": false,
-      "bundleIdentifier": "com.mcqueenygroup.hornofino"
+      "bundleIdentifier": "com.mcqueenygroup.hornofino",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.mcqueenygroup.hornofino",
