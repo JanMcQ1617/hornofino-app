@@ -6,8 +6,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   RefreshControl,
   ScrollView,
@@ -25,7 +27,13 @@ import { TAB_BAR_CLEARANCE } from '@/components/floating-tab-bar';
 import { TicketIcon } from '@/components/icons';
 import { PunchCard } from '@/components/punch-card';
 import { stampsCopy } from '@/components/stamps';
-import { ApiError, normalizeCardCode, type CardHistoryEntry } from '@/lib/api';
+import {
+  ApiError,
+  getWalletHealth,
+  normalizeCardCode,
+  walletPassUrl,
+  type CardHistoryEntry,
+} from '@/lib/api';
 import { relativeDate } from '@/lib/format';
 import { useApp } from '@/lib/state';
 import { getStore } from '@/lib/stores';
@@ -183,12 +191,43 @@ export default function QrScreen() {
   const [popFrom, setPopFrom] = useState<number | null>(null);
   /** códigos QSTO que acaban de aparecer — estado de celebración */
   const [freshRewards, setFreshRewards] = useState<string[]>([]);
+  /**
+   * Apple Wallet: el botón solo existe en iOS y solo si el servidor confirma
+   * que puede firmar pases — el mismo interruptor que usa tarjeta.html en el
+   * sitio. Se pregunta una vez por montaje; si falla, se queda escondido.
+   */
+  const [walletReady, setWalletReady] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       refreshCard();
     }, [refreshCard]),
   );
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    let alive = true;
+    getWalletHealth().then((ok) => {
+      if (alive) setWalletReady(ok);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // El pase es la MISMA tarjeta en otro formato: la URL devuelve el .pkpass
+  // firmado y la hoja de Safari (in-app) se lo entrega a Wallet, que muestra
+  // su propio "Añadir". Si la hoja no está disponible, Safari de verdad.
+  const addToWallet = useCallback(async () => {
+    if (!card) return;
+    const url = walletPassUrl(card.code);
+    Haptics.selectionAsync().catch(() => {});
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      Linking.openURL(url).catch(() => {});
+    }
+  }, [card]);
 
   // Compara la tarjeta con lo último visto (AsyncStorage) para disparar
   // el pop de sellos y la celebración de premios nuevos.
@@ -285,6 +324,14 @@ export default function QrScreen() {
                 {card.code}
               </Text>
               <Text style={styles.showHint}>Enséñalo en caja pa’ tu sello</Text>
+              {walletReady ? (
+                <GhostButton
+                  label="Añadir a Apple Wallet"
+                  onPress={addToWallet}
+                  accessibilityLabel="Añadir tu tarjeta Horno Rewards a Apple Wallet"
+                  style={styles.walletBtn}
+                />
+              ) : null}
             </View>
 
             {/* ——— Tarjeta de sellos 2×3 ——— */}
@@ -412,6 +459,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.ui,
     fontSize: textSize.small,
     color: colors.inkSoft,
+  },
+  // Dentro de qrCard (alignItems center) el slab se encogería al texto;
+  // stretch lo deja a todo lo ancho, como los botones del resto de la pantalla.
+  walletBtn: {
+    marginTop: space.lg,
+    alignSelf: 'stretch',
   },
   punchBlock: {
     marginTop: space.xl,

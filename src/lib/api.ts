@@ -165,6 +165,27 @@ export async function getCard(code: string): Promise<RewardsCard> {
   return data.card;
 }
 
+/**
+ * Apple Wallet. El pase es la MISMA tarjeta en otro formato: lo firma el
+ * servidor (/api/pass) y solo existe si los certificados están configurados
+ * — este health check es el mismo interruptor que usa tarjeta.html en el
+ * sitio. Cualquier fallo (sin red, servidor viejo sin la función, 501) es
+ * simplemente "no hay pase que ofrecer": nunca un error en pantalla.
+ */
+export async function getWalletHealth(): Promise<boolean> {
+  try {
+    const data = await request<{ configured?: boolean }>('/api/pass?health=1');
+    return data?.configured === true;
+  } catch {
+    return false;
+  }
+}
+
+/** URL del .pkpass de una tarjeta. Safari lo recibe y se lo entrega a Wallet. */
+export function walletPassUrl(code: string): string {
+  return `${BASE}/api/pass?code=${encodeURIComponent(code)}`;
+}
+
 export async function placeOrder(input: {
   store: string;
   items: OrderItemPayload[];
