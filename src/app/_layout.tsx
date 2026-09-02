@@ -123,6 +123,18 @@ function RootNavigator() {
           }}
         />
         <Stack.Screen
+          name="menu-light"
+          options={{
+            headerShown: true,
+            headerTitle: 'HORNOFINO Light',
+            headerBackTitle: 'Atrás',
+            headerTintColor: colors.ink,
+            headerTitleStyle: { fontFamily: fonts.display, fontSize: textSize.h3, color: colors.ink },
+            headerStyle: { backgroundColor: colors.marfil },
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
           name="pedido/[id]"
           options={{
             headerShown: true,

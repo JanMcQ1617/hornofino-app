@@ -1,13 +1,16 @@
-// Ordenar — LIGHT-FIRST (directiva Jan 2026-08-11). La experiencia principal
-// es HORNOFINO Light: platos ligeros y saludables, presentados en grande.
+// Ordenar — pantalla de ELECCIÓN (Jan, 2 sep 2026).
 //
-// HONESTIDAD, regla dura: el menú Light es un BORRADOR sin precios aprobados
-// (ni aquí ni en el servidor). Estas tarjetas NO se pueden añadir a la
-// canasta — se presentan como "Probando lo nuevo · Borrador" hasta que el
-// cliente apruebe la carta (ver LIGHT_MENU_READY en lib/menu-light.ts).
+// Antes esta pestaña ERA el menú Light (directiva light-first del 2026-08-11):
+// abría directo en platos que nadie puede pedir todavía y el menú ordenable
+// quedaba debajo del scroll. Ahora la pestaña pregunta primero — el de
+// siempre o el Light — y cada carta vive en su propia pantalla:
+//   · /menu-completo → el menú regular, ordenable (única vía de ingresos hoy)
+//   · /menu-light    → HORNOFINO Light, borrador sin precios
 //
-// El menú regular (239 items, la única vía de ingresos hoy) sigue completo y
-// ordenable en /menu-completo, enlazado abajo. Su flujo no cambió en nada.
+// HONESTIDAD, regla dura: Light sigue siendo un BORRADOR sin precios
+// aprobados (LIGHT_MENU_READY en lib/menu-light.ts). La tarjeta de Light dice
+// que es borrador ANTES de que la toquen — la elección no puede insinuar que
+// se puede ordenar de ahí, o la pantalla estaría vendiendo algo que no existe.
 
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -16,12 +19,11 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/components/buttons';
 import { CartBar } from '@/components/cart-bar';
 import { TAB_BAR_CLEARANCE } from '@/components/floating-tab-bar';
 import { ChevronRightIcon } from '@/components/icons';
 import { PressableScale } from '@/components/motion';
-import { PlateArt, plateKindFor } from '@/components/plate-art';
+import { PlateArt } from '@/components/plate-art';
 import { StoreChip, StoreSheet } from '@/components/store-sheet';
 import { LIGHT_SECTIONS } from '@/lib/menu-light';
 import { MENU_SECTIONS } from '@/lib/menu';
@@ -30,6 +32,7 @@ import { useApp } from '@/lib/state';
 import { colors, fonts, motion, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
 
 const REGULAR_ITEM_COUNT = MENU_SECTIONS.reduce((n, s) => n + s.items.length, 0);
+const LIGHT_PLATE_COUNT = LIGHT_SECTIONS.reduce((n, s) => n + s.plates.length, 0);
 
 export default function OrdenarScreen() {
   const insets = useSafeAreaInsets();
@@ -37,6 +40,10 @@ export default function OrdenarScreen() {
   const { cartCount } = useApp();
   const [storeSheetOpen, setStoreSheetOpen] = useState(false);
   const reduced = useReducedMotion();
+
+  // Las dos tarjetas entran escalonadas, en el orden en que se leen.
+  const enter = (i: number) =>
+    reduced ? undefined : FadeInDown.duration(motion.base).delay(i * motion.stagger);
 
   return (
     <View style={styles.root}>
@@ -55,99 +62,67 @@ export default function OrdenarScreen() {
           <StoreChip onPress={() => setStoreSheetOpen(true)} />
         </View>
 
-        {/* ——— La historia Light ——— */}
-        <View style={styles.lightHero}>
-          <Text style={styles.eyebrow}>Velando tu salud</Text>
-          <Text style={styles.lightTitle}>HORNOFINO Light</Text>
-          <View style={styles.draftBadge}>
-            <Text style={styles.draftBadgeText}>Probando lo nuevo · Borrador</Text>
-          </View>
-          <Text style={styles.lightBody}>
-            Platos ligeros pensados pa’ comer bien sin perder el sabor de casa.{' '}
-            <Text style={styles.lightBodyStrong}>Se estrena pronto en las tres panaderías.</Text>
-          </Text>
+        <Text style={styles.lede}>¿Qué te provoca hoy?</Text>
 
-          {/*
-            Light va primero (directiva 2026-08-11) pero Light TODAVÍA NO se
-            puede ordenar: son ideas sin precio aprobado. Sin este botón la
-            pestaña "Ordenar" abre en comida que nadie puede pedir y la carta
-            de verdad queda debajo del scroll — se siente como que el app no
-            tiene canasta. Esto deja la jerarquía Light intacta y pone el
-            camino a ordenar por encima de la línea de flotación.
-          */}
-          <PrimaryButton
-            label="Ver el menú completo"
+        {/* ——— El menú de siempre: lo único ordenable hoy, va primero ——— */}
+        <Animated.View entering={enter(0)}>
+          <PressableScale
             onPress={() => router.push('/menu-completo')}
-            accessibilityLabel={`Ver el menú completo: ${REGULAR_ITEM_COUNT} delicias para ordenar ahora`}
-            style={{ marginTop: space.lg }}
-          />
-        </View>
-
-        {LIGHT_SECTIONS.map((section, si) => {
-          const tone = si % 2 === 0 ? ('deep' as const) : ('cream' as const);
-          return (
-            <View key={section.id} style={styles.section}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              {section.intro ? <Text style={styles.sectionIntro}>{section.intro}</Text> : null}
-              <View style={{ gap: space.md }}>
-                {section.plates.map((plate, pi) => (
-                  <Animated.View
-                    key={plate.id}
-                    // Entran escalonadas para que la lista se lea de arriba a
-                    // abajo en vez de aparecer toda de golpe. El tope de 5 evita
-                    // que el último plato espere medio segundo.
-                    entering={
-                      reduced
-                        ? undefined
-                        : FadeInDown.duration(motion.base).delay(
-                            Math.min(si * 2 + pi, 5) * motion.stagger,
-                          )
-                    }
-                    style={styles.plateCard}
-                    accessibilityLabel={`${plate.name}: ${plate.desc}. Idea en borrador — se estrena pronto, todavía no se puede ordenar`}
-                  >
-                    {/* Placeholder de grabado — se cambia por <Image> cuando
-                        Jan entregue las fotos reales del plato. */}
-                    <PlateArt kind={plateKindFor(plate.name)} size={104} tone={tone} />
-                    <View style={styles.plateInfo}>
-                      <View style={styles.plateNameRow}>
-                        <Text style={styles.plateName}>{plate.name}</Text>
-                      </View>
-                      <Text style={styles.plateDesc}>{plate.desc}</Text>
-                      <View style={styles.ideaStamp}>
-                        <Text style={styles.ideaStampText}>Idea · se estrena pronto</Text>
-                      </View>
-                    </View>
-                  </Animated.View>
-                ))}
+            accessibilityRole="button"
+            accessibilityLabel={`El menú de siempre: ${REGULAR_ITEM_COUNT} delicias para ordenar ahora`}
+            style={styles.card}
+          >
+            <View style={styles.photo}>
+              <Image
+                source={SECTION_IMAGES.sandwiches}
+                style={styles.photoImg}
+                contentFit="cover"
+                accessibilityLabel="Sandwiches de HORNOFINO"
+              />
+            </View>
+            <View style={styles.cardBody}>
+              <Text style={styles.cardEyebrow}>La carta de siempre</Text>
+              <Text style={styles.cardTitle}>El menú de siempre</Text>
+              <Text style={styles.cardDesc}>
+                {REGULAR_ITEM_COUNT} delicias pa’ ordenar ahora mismo — panes, quesitos, sandwiches
+                y el café de la finca.
+              </Text>
+              <View style={[styles.stamp, styles.stampReady]}>
+                <Text style={[styles.stampText, styles.stampTextReady]}>Ordena ahora</Text>
               </View>
             </View>
-          );
-        })}
+            <ChevronRightIcon size={18} color={colors.ink} />
+          </PressableScale>
+        </Animated.View>
+
+        {/* ——— Light: se presenta como lo que es, un borrador ——— */}
+        <Animated.View entering={enter(1)}>
+          <PressableScale
+            onPress={() => router.push('/menu-light')}
+            accessibilityRole="button"
+            accessibilityLabel={`Probar HORNOFINO Light: ${LIGHT_PLATE_COUNT} platos ligeros. Borrador — se estrena pronto, todavía no se puede ordenar`}
+            style={[styles.card, styles.cardLight]}
+          >
+            <View style={styles.plateWrap}>
+              <PlateArt kind="bowl" size={64} tone="deep" />
+            </View>
+            <View style={styles.cardBody}>
+              <Text style={styles.cardEyebrow}>Velando tu salud</Text>
+              <Text style={styles.cardTitle}>HORNOFINO Light</Text>
+              <Text style={styles.cardDesc}>
+                {LIGHT_PLATE_COUNT} platos ligeros pa’ comer bien sin perder el sabor de casa.
+              </Text>
+              <View style={[styles.stamp, styles.stampDraft]}>
+                <Text style={[styles.stampText, styles.stampTextDraft]}>
+                  Borrador · se estrena pronto
+                </Text>
+              </View>
+            </View>
+            <ChevronRightIcon size={18} color={colors.ink} />
+          </PressableScale>
+        </Animated.View>
 
         <Text style={styles.accent}>La salud es felicidad.</Text>
-
-        {/* ——— El menú de siempre, demovido pero completo ——— */}
-        <PressableScale
-          onPress={() => router.push('/menu-completo')}
-          accessibilityRole="button"
-          accessibilityLabel={`El menú de siempre: ${REGULAR_ITEM_COUNT} delicias para ordenar ahora`}
-          style={styles.regularCard}
-        >
-          <View style={styles.regularPhoto}>
-            <Image
-              source={SECTION_IMAGES.sandwiches}
-              style={styles.regularPhotoImg}
-              contentFit="cover"
-              accessibilityLabel="Sandwiches de HORNOFINO"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.regularTitle}>El menú de siempre</Text>
-            <Text style={styles.regularSub}>{REGULAR_ITEM_COUNT} delicias pa’ ordenar ahora</Text>
-          </View>
-          <ChevronRightIcon size={18} color={colors.ink} />
-        </PressableScale>
       </ScrollView>
 
       <CartBar bottomOffset={insets.bottom + TAB_BAR_CLEARANCE} />
@@ -169,154 +144,104 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: space.md,
-    marginBottom: space.lg,
+    marginBottom: space.sm,
   },
   title: {
     fontFamily: fonts.display,
     fontSize: textSize.display,
     color: colors.ink,
   },
-  // Héroe menta: superficie clara, así que todo el texto encima es INK
-  // (regla 2 del sistema). Antes era verde oscuro con texto marfil.
-  lightHero: {
-    backgroundColor: colors.menta,
-    borderRadius: radius.lg,
-    padding: space.xl,
-    marginBottom: space.xl,
-    gap: space.sm,
-  },
-  eyebrow: {
-    fontFamily: fonts.uiSemi,
-    fontSize: textSize.caption,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    color: colors.ink,
-    opacity: 0.72,
-  },
-  lightTitle: {
-    fontFamily: fonts.display,
-    fontSize: 32,
-    color: colors.ink,
-  },
-  draftBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.ghostFillOnMenta,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  draftBadgeText: {
-    fontFamily: fonts.uiBold,
-    fontSize: textSize.caption,
-    color: colors.naranjaInk,
-    letterSpacing: tracking.snug,
-  },
-  lightBody: {
-    fontFamily: fonts.ui,
-    fontSize: textSize.body,
-    lineHeight: 21,
-    color: colors.inkSoft,
-  },
-  lightBodyStrong: {
-    fontFamily: fonts.uiSemi,
-  },
-  section: {
-    marginBottom: space.xl,
-  },
-  sectionTitle: {
-    fontFamily: fonts.display,
-    fontSize: textSize.h1,
-    color: colors.ink,
-    marginBottom: 4,
-  },
-  sectionIntro: {
+  lede: {
     fontFamily: fonts.displayItalic,
-    fontSize: textSize.bodyLg,
-    lineHeight: 22,
+    fontSize: textSize.subhead,
     color: colors.inkSoft,
-    marginBottom: space.md,
+    marginBottom: space.lg,
   },
-  plateCard: {
+  card: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: space.lg,
     backgroundColor: colors.paper,
     borderRadius: radius.lg,
     padding: space.md,
-    alignItems: 'center',
+    marginBottom: space.md,
     ...shadowCard,
   },
-  plateInfo: {
-    flex: 1,
-    gap: 4,
-    paddingVertical: 2,
+  // Light se distingue por SUPERFICIE, no por un borde de color: menta es
+  // superficie en este sistema (regla 2), y todo el texto encima sigue INK.
+  cardLight: {
+    backgroundColor: colors.mentaSuave,
   },
-  plateNameRow: {
-    flexDirection: 'row',
+  photo: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.btn,
+    overflow: 'hidden',
+  },
+  photoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  // Mismo bloque de 72 que la foto, para que las dos tarjetas alineen el
+  // texto en la misma columna aunque una lleve grabado y la otra foto.
+  plateWrap: {
+    width: 72,
+    height: 72,
     alignItems: 'center',
-    gap: space.sm,
+    justifyContent: 'center',
   },
-  plateName: {
+  cardBody: {
     flex: 1,
+    gap: 3,
+  },
+  cardEyebrow: {
+    fontFamily: fonts.uiSemi,
+    fontSize: textSize.tiny,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: colors.ink,
+    opacity: 0.6,
+  },
+  cardTitle: {
     fontFamily: fonts.display,
-    fontSize: textSize.h3,
-    lineHeight: 24,
+    fontSize: textSize.h2,
     color: colors.ink,
   },
-  plateDesc: {
+  cardDesc: {
     fontFamily: fonts.ui,
     fontSize: textSize.small,
     lineHeight: 19,
     color: colors.inkSoft,
   },
-  ideaStamp: {
+  stamp: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.paper2,
     borderRadius: radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 3,
-    marginTop: 3,
+    marginTop: 5,
   },
-  ideaStampText: {
+  stampReady: {
+    backgroundColor: colors.ghostFill,
+  },
+  stampDraft: {
+    backgroundColor: colors.ghostFillOnMenta,
+  },
+  stampText: {
     fontFamily: fonts.uiSemi,
     fontSize: textSize.tiny,
     letterSpacing: tracking.snug,
+  },
+  stampTextReady: {
     color: colors.verdeInk,
+  },
+  stampTextDraft: {
+    color: colors.naranjaInk,
   },
   accent: {
     fontFamily: fonts.displayItalic,
     fontSize: textSize.subhead,
     color: colors.verdeInk,
     textAlign: 'center',
-    marginBottom: space.xl,
-  },
-  regularCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.lg,
-    backgroundColor: colors.paper,
-    borderRadius: radius.btnLg,
-    padding: space.md,
-    ...shadowCard,
-  },
-  regularPhoto: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.btn,
-    overflow: 'hidden',
-  },
-  regularPhotoImg: {
-    width: '100%',
-    height: '100%',
-  },
-  regularTitle: {
-    fontFamily: fonts.display,
-    fontSize: textSize.h2,
-    color: colors.ink,
-  },
-  regularSub: {
-    fontFamily: fonts.uiMedium,
-    fontSize: textSize.small,
-    color: colors.inkSoft,
-    marginTop: 2,
+    marginTop: space.lg,
   },
 });
