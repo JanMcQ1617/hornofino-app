@@ -21,7 +21,7 @@ import { ApiError, getOrderStatus, type OrderInfo, type OrderStatusName } from '
 import { money, orderDate } from '@/lib/format';
 import { findMenuItem } from '@/lib/menu';
 import { getStore } from '@/lib/stores';
-import { colors, fonts, motion, radius, shadowCard, space } from '@/lib/theme';
+import { colors, fonts, motion, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
 
 const POLL_MS = 15000;
 
@@ -308,13 +308,13 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: textSize.h2,
     color: colors.verdeInk,
     marginBottom: 2,
   },
   successBody: {
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.verdeInk,
   },
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   },
   storeLine: {
     fontFamily: fonts.ui,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.inkSoft,
     marginTop: 2,
     marginBottom: space.xl,
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontFamily: fonts.uiSemi,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.inkFaint,
   },
   stepTitleActive: {
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   stepDetail: {
     marginTop: 2,
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.inkSoft,
   },
@@ -425,13 +425,13 @@ const styles = StyleSheet.create({
   },
   cancelTitle: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: textSize.h2,
     color: colors.danger,
     marginBottom: 4,
   },
   cancelBody: {
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.ink,
   },
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   },
   itemsTitle: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: textSize.h2,
     color: colors.ink,
     marginBottom: space.md,
   },
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   },
   itemQty: {
     fontFamily: fonts.uiBold,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.verdeInk,
     fontVariant: ['tabular-nums'],
     minWidth: 26,
@@ -464,13 +464,13 @@ const styles = StyleSheet.create({
   itemName: {
     flex: 1,
     fontFamily: fonts.uiMedium,
-    fontSize: 14,
+    fontSize: textSize.body,
     lineHeight: 20,
     color: colors.ink,
   },
   itemPrice: {
     fontFamily: fonts.uiSemi,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
@@ -485,26 +485,26 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontFamily: fonts.display,
-    fontSize: 18,
+    fontSize: textSize.h4,
     color: colors.ink,
   },
   totalValue: {
     fontFamily: fonts.uiBold,
-    fontSize: 20,
+    fontSize: textSize.h2,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
   estimateNote: {
     marginTop: 6,
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     lineHeight: 17,
     color: colors.inkSoft,
   },
   payNote: {
     marginTop: 6,
     fontFamily: fonts.displayItalic,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.inkSoft,
   },
   pickupCard: {
@@ -515,20 +515,20 @@ const styles = StyleSheet.create({
   },
   pickupLabel: {
     fontFamily: fonts.uiSemi,
-    fontSize: 11,
-    letterSpacing: 1.2,
+    fontSize: textSize.tiny,
+    letterSpacing: tracking.caps,
     textTransform: 'uppercase',
     color: colors.verdeInk,
     marginBottom: 3,
   },
   pickupName: {
     fontFamily: fonts.display,
-    fontSize: 19,
+    fontSize: textSize.h3,
     color: colors.ink,
   },
   pickupDetail: {
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.inkSoft,
   },

@@ -36,7 +36,7 @@ import { menuPrice } from '@/lib/format';
 import { MENU_SECTIONS, type MenuItem, type MenuSection } from '@/lib/menu';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
-import { colors, fonts, motion, radius, space } from '@/lib/theme';
+import { colors, fonts, motion, radius, space, textSize } from '@/lib/theme';
 
 /**
  * Chip de categoría. La placa de menta CRECE por detrás de la foto en vez de
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   chipPhotoWrap: {
     width: 62,
     height: 62,
-    borderRadius: 14,
+    borderRadius: radius.md,
     padding: 3,
     backgroundColor: 'transparent',
   },
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 14,
+    borderRadius: radius.md,
     backgroundColor: colors.verde,
   },
   chipPhoto: {
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   chipLabel: {
     marginTop: 5,
     fontFamily: fonts.uiMedium,
-    fontSize: 11,
+    fontSize: textSize.tiny,
     color: colors.inkSoft,
     maxWidth: 74,
   },
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fonts.display,
-    fontSize: 24,
+    fontSize: textSize.h1,
     color: colors.marfil,
     paddingHorizontal: space.lg,
     paddingBottom: space.md,
@@ -469,14 +469,14 @@ const rowStyles = StyleSheet.create({
   },
   name: {
     fontFamily: fonts.uiSemi,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     lineHeight: 20,
     color: colors.ink,
   },
   price: {
     marginTop: 2,
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.inkSoft,
     fontVariant: ['tabular-nums'],
   },
@@ -497,7 +497,7 @@ const rowStyles = StyleSheet.create({
   },
   qtyBadge: {
     fontFamily: fonts.uiBold,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
@@ -515,7 +515,7 @@ const rowStyles = StyleSheet.create({
   stepBtn: {
     width: 34,
     height: 34,
-    borderRadius: 8,
+    borderRadius: radius.xs,
     backgroundColor: colors.marfil,
     alignItems: 'center',
     justifyContent: 'center',
@@ -527,7 +527,7 @@ const rowStyles = StyleSheet.create({
     minWidth: 26,
     textAlign: 'center',
     fontFamily: fonts.uiBold,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },

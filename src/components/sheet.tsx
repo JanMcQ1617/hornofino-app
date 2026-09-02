@@ -34,7 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CloseIcon } from '@/components/icons';
 import { haptic } from '@/components/motion';
-import { colors, fonts, motion, radius, space } from '@/lib/theme';
+import { colors, fonts, motion, radius, space, textSize } from '@/lib/theme';
 
 /** Fracción de la hoja que hay que bajar para que se cierre al soltar. */
 const DISMISS_RATIO = 0.32;
@@ -211,13 +211,13 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: textSize.h2Lg,
     color: colors.ink,
   },
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: radius.xs,
     backgroundColor: colors.paper2,
     alignItems: 'center',
     justifyContent: 'center',

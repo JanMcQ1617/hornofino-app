@@ -40,7 +40,7 @@ import { getPushToken } from '@/lib/push';
 import { money, summarizeLines } from '@/lib/format';
 import { useApp } from '@/lib/state';
 import { getStore, pickupSlots, storeOpenState } from '@/lib/stores';
-import { colors, fonts, motion, radius, space } from '@/lib/theme';
+import { colors, fonts, motion, radius, space, textSize, tracking } from '@/lib/theme';
 
 export default function CarritoScreen() {
   const router = useRouter();
@@ -541,14 +541,14 @@ const styles = StyleSheet.create({
   },
   lineName: {
     fontFamily: fonts.uiSemi,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     lineHeight: 20,
     color: colors.ink,
   },
   lineUnit: {
     marginTop: 2,
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.inkSoft,
     fontVariant: ['tabular-nums'],
   },
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
   stepBtn: {
     width: 30,
     height: 30,
-    borderRadius: 8,
+    borderRadius: radius.xs,
     backgroundColor: colors.marfil,
     alignItems: 'center',
     justifyContent: 'center',
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     minWidth: 24,
     textAlign: 'center',
     fontFamily: fonts.uiBold,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
     minWidth: 62,
     textAlign: 'right',
     fontFamily: fonts.uiSemi,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   },
   payOptText: {
     fontFamily: fonts.uiSemi,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     color: colors.inkSoft,
   },
   payOptTextOn: {
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
   cardNote: {
     marginTop: space.sm,
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.inkSoft,
   },
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
   },
   slotText: {
     fontFamily: fonts.uiSemi,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.inkSoft,
   },
   // Sobre menta, INK — regla 2 del sistema de color.
@@ -654,12 +654,12 @@ const styles = StyleSheet.create({
   },
   storeName: {
     fontFamily: fonts.uiSemi,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
   },
   storeAddr: {
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.inkSoft,
     marginTop: 2,
   },
@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
   },
   closedNoteText: {
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.danger,
   },
@@ -683,14 +683,14 @@ const styles = StyleSheet.create({
   },
   soonNoteText: {
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.naranjaInk,
   },
   blockLabel: {
     fontFamily: fonts.uiSemi,
-    fontSize: 12,
-    letterSpacing: 0.6,
+    fontSize: textSize.caption,
+    letterSpacing: tracking.base,
     textTransform: 'uppercase',
     color: colors.inkSoft,
     marginBottom: space.sm,
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: 13,
     fontFamily: fonts.uiMedium,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
   },
   noteInput: {
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
   },
   stampNoteText: {
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.verdeInk,
   },
@@ -735,24 +735,24 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: textSize.h2,
     color: colors.ink,
   },
   totalValue: {
     fontFamily: fonts.uiBold,
-    fontSize: 24,
+    fontSize: textSize.h1,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
   estimateNote: {
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     lineHeight: 18,
     color: colors.inkSoft,
   },
   payNote: {
     fontFamily: fonts.displayItalic,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.inkSoft,
   },
   errorBox: {
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.danger,
   },

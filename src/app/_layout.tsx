@@ -18,7 +18,7 @@ import { View } from 'react-native';
 
 import { HornoIntro } from '@/components/horno-intro';
 import { AppProvider, useApp } from '@/lib/state';
-import { colors, fonts } from '@/lib/theme';
+import { colors, fonts, textSize } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -105,7 +105,7 @@ function RootNavigator() {
             animation: 'slide_from_bottom',
             headerShown: true,
             headerTitle: 'Tu canasta',
-            headerTitleStyle: { fontFamily: fonts.display, fontSize: 19, color: colors.ink },
+            headerTitleStyle: { fontFamily: fonts.display, fontSize: textSize.h3, color: colors.ink },
             headerStyle: { backgroundColor: colors.marfil },
             headerShadowVisible: false,
           }}
@@ -117,7 +117,7 @@ function RootNavigator() {
             headerTitle: 'El menú de siempre',
             headerBackTitle: 'Atrás',
             headerTintColor: colors.ink,
-            headerTitleStyle: { fontFamily: fonts.display, fontSize: 19, color: colors.ink },
+            headerTitleStyle: { fontFamily: fonts.display, fontSize: textSize.h3, color: colors.ink },
             headerStyle: { backgroundColor: colors.marfil },
             headerShadowVisible: false,
           }}

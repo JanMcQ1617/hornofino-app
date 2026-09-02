@@ -18,7 +18,7 @@ import { getOrderStatus, type OrderStatusName } from '@/lib/api';
 import { money } from '@/lib/format';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
-import { colors, fonts, radius, shadowCard, space } from '@/lib/theme';
+import { colors, fonts, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
 
 const STATUS_LABEL: Record<OrderStatusName, string> = {
   nueva: 'Recibida',
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   tagline: {
     marginTop: 2,
     fontFamily: fonts.uiSemi,
-    fontSize: 11,
+    fontSize: textSize.tiny,
     letterSpacing: 1.8,
     textTransform: 'uppercase',
     color: colors.verdeInk,
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   },
   counterLabel: {
     fontFamily: fonts.uiSemi,
-    fontSize: 9,
+    fontSize: textSize.micro,
     letterSpacing: 1.4,
     textTransform: 'uppercase',
     color: colors.inkSoft,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   joinPillText: {
     fontFamily: fonts.uiBold,
-    fontSize: 11,
+    fontSize: textSize.tiny,
     letterSpacing: 0.3,
     color: colors.ink,
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    backgroundColor: colors.frostChip,
     borderRadius: radius.btn,
     paddingHorizontal: space.md,
     paddingVertical: 9,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   },
   activeText: {
     fontFamily: fonts.uiSemi,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.verdeInk,
   },
   rewardCard: {
@@ -376,19 +376,19 @@ const styles = StyleSheet.create({
   rewardKicker: {
     fontFamily: fonts.uiBold,
     fontSize: 10,
-    letterSpacing: 1.2,
+    letterSpacing: tracking.caps,
     textTransform: 'uppercase',
     color: colors.naranjaInk,
   },
   rewardTitle: {
     fontFamily: fonts.display,
-    fontSize: 18,
+    fontSize: textSize.h4,
     color: colors.ink,
     marginTop: 1,
   },
   rewardSub: {
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.inkSoft,
     marginTop: 1,
   },
@@ -400,19 +400,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: colors.frostBar,
     borderRadius: radius.btn,
     paddingHorizontal: space.lg,
     paddingVertical: 12,
   },
   repeatText: {
     fontFamily: fonts.uiBold,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.ink,
   },
   repeatTotal: {
     fontFamily: fonts.uiBold,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
@@ -430,19 +430,19 @@ const styles = StyleSheet.create({
   },
   ctaPrimaryText: {
     fontFamily: fonts.uiBold,
-    fontSize: 13,
-    letterSpacing: 0.8,
+    fontSize: textSize.small,
+    letterSpacing: tracking.wide,
     textTransform: 'uppercase',
     color: colors.ink,
     textAlign: 'center',
   },
   ctaFrosted: {
-    backgroundColor: 'rgba(26, 19, 10, 0.6)',
+    backgroundColor: colors.inkFrost,
   },
   ctaFrostedText: {
     fontFamily: fonts.uiBold,
-    fontSize: 13,
-    letterSpacing: 0.8,
+    fontSize: textSize.small,
+    letterSpacing: tracking.wide,
     textTransform: 'uppercase',
     color: colors.marfil,
     textAlign: 'center',

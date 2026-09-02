@@ -24,7 +24,7 @@ import { money, orderDate } from '@/lib/format';
 import { findMenuItem } from '@/lib/menu';
 import { useApp } from '@/lib/state';
 import { getStore } from '@/lib/stores';
-import { colors, fonts, motion, radius, space } from '@/lib/theme';
+import { colors, fonts, motion, radius, space, textSize, tracking } from '@/lib/theme';
 
 const STATUS_CHIP: Record<OrderStatusName, { label: string; bg: string; fg: string }> = {
   nueva: { label: 'Recibida', bg: colors.paper2, fg: colors.ink },
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontFamily: fonts.display,
-    fontSize: 30,
+    fontSize: textSize.display,
     color: colors.ink,
     marginBottom: space.lg,
   },
@@ -285,8 +285,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.uiSemi,
-    fontSize: 12,
-    letterSpacing: 0.6,
+    fontSize: textSize.caption,
+    letterSpacing: tracking.base,
     textTransform: 'uppercase',
     color: colors.inkSoft,
     marginBottom: 4,
@@ -299,13 +299,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: 11,
     fontFamily: fonts.uiMedium,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
   },
   hint: {
     marginTop: 6,
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     lineHeight: 17,
     color: colors.inkFaint,
   },
@@ -321,24 +321,24 @@ const styles = StyleSheet.create({
   },
   codeText: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: textSize.h2Lg,
     letterSpacing: 4,
     color: colors.ink,
   },
   storeText: {
     fontFamily: fonts.uiSemi,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     color: colors.ink,
   },
   sectionTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: textSize.h2Lg,
     color: colors.ink,
     marginBottom: space.md,
   },
   offlineNote: {
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.inkSoft,
     marginBottom: 2,
   },
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   },
   orderId: {
     fontFamily: fonts.uiBold,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     color: colors.ink,
   },
   statusChip: {
@@ -368,22 +368,22 @@ const styles = StyleSheet.create({
   },
   statusChipText: {
     fontFamily: fonts.uiSemi,
-    fontSize: 11,
+    fontSize: textSize.tiny,
   },
   orderSummary: {
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.inkSoft,
     marginBottom: 2,
   },
   orderMeta: {
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.inkFaint,
   },
   orderTotal: {
     fontFamily: fonts.uiBold,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
@@ -394,19 +394,19 @@ const styles = StyleSheet.create({
   },
   footerBrand: {
     fontFamily: fonts.display,
-    fontSize: 16,
+    fontSize: textSize.lead,
     letterSpacing: 2,
     color: colors.inkSoft,
   },
   footerLine: {
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.inkFaint,
   },
   footerLink: {
     marginTop: 2,
     fontFamily: fonts.uiSemi,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.verdeInk,
     textDecorationLine: 'underline',
   },

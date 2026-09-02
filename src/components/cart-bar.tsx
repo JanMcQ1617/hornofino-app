@@ -22,7 +22,7 @@ import { GradientSlab } from '@/components/buttons';
 import { PressableScale } from '@/components/motion';
 import { money } from '@/lib/format';
 import { useApp } from '@/lib/state';
-import { colors, fonts, motion, radius, shadowBar, space } from '@/lib/theme';
+import { colors, fonts, motion, radius, shadowBar, space, textSize } from '@/lib/theme';
 
 export function CartBar({
   /** distancia al borde inferior; los tabs pasan insets.bottom + TAB_BAR_CLEARANCE */
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   count: {
     minWidth: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: radius.md,
     backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
@@ -118,14 +118,14 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontFamily: fonts.uiBold,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.marfil,
     fontVariant: ['tabular-nums'],
   },
   label: {
     flex: 1,
     fontFamily: fonts.uiBold,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
   },
   totalWrap: {
@@ -135,13 +135,13 @@ const styles = StyleSheet.create({
   },
   approx: {
     fontFamily: fonts.uiMedium,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.ink,
     opacity: 0.7,
   },
   total: {
     fontFamily: fonts.uiBold,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },

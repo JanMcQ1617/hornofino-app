@@ -27,7 +27,7 @@ import { LIGHT_SECTIONS } from '@/lib/menu-light';
 import { MENU_SECTIONS } from '@/lib/menu';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
-import { colors, fonts, motion, radius, shadowCard, space } from '@/lib/theme';
+import { colors, fonts, motion, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
 
 const REGULAR_ITEM_COUNT = MENU_SECTIONS.reduce((n, s) => n + s.items.length, 0);
 
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 30,
+    fontSize: textSize.display,
     color: colors.ink,
   },
   // Héroe menta: superficie clara, así que todo el texto encima es INK
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontFamily: fonts.uiSemi,
-    fontSize: 12,
+    fontSize: textSize.caption,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
     color: colors.ink,
@@ -207,13 +207,13 @@ const styles = StyleSheet.create({
   },
   draftBadgeText: {
     fontFamily: fonts.uiBold,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.naranjaInk,
-    letterSpacing: 0.4,
+    letterSpacing: tracking.snug,
   },
   lightBody: {
     fontFamily: fonts.ui,
-    fontSize: 14,
+    fontSize: textSize.body,
     lineHeight: 21,
     color: colors.inkSoft,
   },
@@ -225,13 +225,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fonts.display,
-    fontSize: 24,
+    fontSize: textSize.h1,
     color: colors.ink,
     marginBottom: 4,
   },
   sectionIntro: {
     fontFamily: fonts.displayItalic,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     lineHeight: 22,
     color: colors.inkSoft,
     marginBottom: space.md,
@@ -258,13 +258,13 @@ const styles = StyleSheet.create({
   plateName: {
     flex: 1,
     fontFamily: fonts.display,
-    fontSize: 19,
+    fontSize: textSize.h3,
     lineHeight: 24,
     color: colors.ink,
   },
   plateDesc: {
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.inkSoft,
   },
@@ -278,13 +278,13 @@ const styles = StyleSheet.create({
   },
   ideaStampText: {
     fontFamily: fonts.uiSemi,
-    fontSize: 11,
-    letterSpacing: 0.4,
+    fontSize: textSize.tiny,
+    letterSpacing: tracking.snug,
     color: colors.verdeInk,
   },
   accent: {
     fontFamily: fonts.displayItalic,
-    fontSize: 17,
+    fontSize: textSize.subhead,
     color: colors.verdeInk,
     textAlign: 'center',
     marginBottom: space.xl,
@@ -310,12 +310,12 @@ const styles = StyleSheet.create({
   },
   regularTitle: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: textSize.h2,
     color: colors.ink,
   },
   regularSub: {
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.inkSoft,
     marginTop: 2,
   },

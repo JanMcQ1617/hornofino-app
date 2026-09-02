@@ -19,7 +19,7 @@ import {
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { PressableScale } from '@/components/motion';
-import { colors, fonts, naranjaGradient, radius } from '@/lib/theme';
+import { colors, fonts, naranjaGradient, radius, textSize } from '@/lib/theme';
 
 /** Fondo con gradiente naranja para slabs primarios (svg, sin deps nuevas). */
 export function GradientSlab({ borderRadius = radius.btnLg }: { borderRadius?: number }) {
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   primaryLabel: {
     fontFamily: fonts.uiBold,
-    fontSize: 17,
+    fontSize: textSize.subhead,
     color: colors.ink,
     letterSpacing: 0.2,
   },
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   ghostLabel: {
     fontFamily: fonts.uiSemi,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.verdeInk,
   },
   ghostLabelDark: {

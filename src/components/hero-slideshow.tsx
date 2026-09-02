@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: colors.dotOnPhoto,
   },
   dotActive: {
     width: 16,

@@ -11,7 +11,7 @@ import { BottomSheet } from '@/components/sheet';
 import { money } from '@/lib/format';
 import type { MenuItem, MenuVariant } from '@/lib/menu';
 import { useApp } from '@/lib/state';
-import { colors, fonts, motion, priceTextBase, radius, space } from '@/lib/theme';
+import { colors, fonts, motion, priceTextBase, radius, space, textSize } from '@/lib/theme';
 
 export function VariantSheet({
   item,
@@ -65,7 +65,7 @@ export function VariantSheet({
 const styles = StyleSheet.create({
   hint: {
     fontFamily: fonts.ui,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.inkSoft,
     marginBottom: space.md,
   },
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.uiSemi,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
   },
   right: {
@@ -89,12 +89,12 @@ const styles = StyleSheet.create({
   },
   price: {
     ...priceTextBase,
-    fontSize: 16,
+    fontSize: textSize.lead,
   },
   addDot: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: radius.xs,
     backgroundColor: colors.naranja,
     alignItems: 'center',
     justifyContent: 'center',

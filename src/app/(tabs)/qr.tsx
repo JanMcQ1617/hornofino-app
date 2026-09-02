@@ -29,7 +29,7 @@ import { ApiError, normalizeCardCode, type CardHistoryEntry } from '@/lib/api';
 import { relativeDate } from '@/lib/format';
 import { useApp } from '@/lib/state';
 import { getStore } from '@/lib/stores';
-import { colors, fonts, radius, shadowCard, space } from '@/lib/theme';
+import { colors, fonts, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
 
 const K_STAMPS_SEEN = 'hf.stampsSeen';
 const K_REWARDS_SEEN = 'hf.rewardsSeen';
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontFamily: fonts.display,
-    fontSize: 30,
+    fontSize: textSize.display,
     color: colors.ink,
     marginBottom: space.lg,
   },
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   },
   cardName: {
     fontFamily: fonts.displayItalic,
-    fontSize: 18,
+    fontSize: textSize.h4,
     color: colors.inkSoft,
     marginBottom: space.lg,
   },
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   showHint: {
     marginTop: 4,
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.inkSoft,
   },
   punchBlock: {
@@ -419,12 +419,12 @@ const styles = StyleSheet.create({
   },
   blockTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: textSize.h2Lg,
     color: colors.ink,
   },
   progressCopy: {
     fontFamily: fonts.uiSemi,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     color: colors.verdeInk,
     textAlign: 'center',
   },
@@ -438,12 +438,12 @@ const styles = StyleSheet.create({
   },
   fullBannerTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: textSize.h2Lg,
     color: colors.ink,
   },
   fullBannerBody: {
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.ink,
     opacity: 0.78,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   },
   newBadgeText: {
     fontFamily: fonts.uiBold,
-    fontSize: 11,
+    fontSize: textSize.tiny,
     letterSpacing: 1,
     color: colors.marfil,
   },
@@ -483,26 +483,26 @@ const styles = StyleSheet.create({
   },
   rewardName: {
     fontFamily: fonts.uiBold,
-    fontSize: 15,
+    fontSize: textSize.bodyLg,
     color: colors.ink,
   },
   rewardCode: {
     fontFamily: fonts.display,
-    fontSize: 30,
+    fontSize: textSize.display,
     letterSpacing: 3,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
   rewardHow: {
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     lineHeight: 19,
     color: colors.ink,
   },
   redeemed: {
     marginTop: space.lg,
     fontFamily: fonts.displayItalic,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.inkSoft,
     textAlign: 'center',
   },
@@ -527,12 +527,12 @@ const styles = StyleSheet.create({
   },
   activityMain: {
     fontFamily: fonts.uiMedium,
-    fontSize: 14,
+    fontSize: textSize.body,
     color: colors.ink,
   },
   activityDate: {
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.inkFaint,
   },
   joinCard: {
@@ -544,8 +544,8 @@ const styles = StyleSheet.create({
   },
   joinKicker: {
     fontFamily: fonts.uiSemi,
-    fontSize: 11,
-    letterSpacing: 1.2,
+    fontSize: textSize.tiny,
+    letterSpacing: tracking.caps,
     textTransform: 'uppercase',
     color: colors.verdeInk,
   },
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   },
   joinBody: {
     fontFamily: fonts.ui,
-    fontSize: 14,
+    fontSize: textSize.body,
     lineHeight: 21,
     color: colors.inkSoft,
   },
@@ -569,18 +569,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: 14,
     fontFamily: fonts.uiMedium,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
   },
   joinError: {
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.danger,
   },
   // El código se escribe como se muestra en la tarjeta: espaciado y centrado.
   codeInput: {
     fontFamily: fonts.display,
-    fontSize: 22,
+    fontSize: textSize.h2Lg,
     letterSpacing: 6,
     textAlign: 'center',
   },

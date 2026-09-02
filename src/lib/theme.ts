@@ -46,6 +46,16 @@ export const colors = {
   scrim: 'rgba(26, 19, 10, 0.45)',
   danger: '#B3261E',
   dangerSuave: 'rgba(179, 38, 30, 0.08)',
+
+  // Superficies sobre FOTO (el héroe de Inicio). Distintas del cristal de
+  // `glass`: esto es frost plano, sin brillo ni canto.
+  /** chip/pastilla frost sobre foto (0.94 y 0.92 son candidatos a fundirse) */
+  frostChip: 'rgba(255, 255, 255, 0.94)',
+  frostBar: 'rgba(255, 255, 255, 0.92)',
+  /** CTA oscuro translúcido sobre foto ("ESCANEA EN TIENDA") */
+  inkFrost: 'rgba(26, 19, 10, 0.6)',
+  /** puntito inactivo del slideshow */
+  dotOnPhoto: 'rgba(255, 255, 255, 0.45)',
 } as const;
 
 /**
@@ -107,10 +117,46 @@ export const fonts = {
   uiBold: 'WorkSans_700Bold',
 } as const;
 
+/**
+ * Escala tipográfica — nombres para TODO tamaño usado ≥2 veces (inventario
+ * 2026-09-01). Valores idénticos a los que ya se renderizaban: esta escala
+ * ORGANIZA, no rediseña. Los tamaños de una sola aparición (10, 26, 28, 32,
+ * 34, 40 — composiciones de héroe) siguen inline a propósito.
+ *
+ * Candidatos a fundirse cuando llegue la dirección visual nueva:
+ * subhead(17)→lead(16), h3(19)→h4(18) o h2(20), bodyLg(15)→body(14).
+ */
+export const textSize = {
+  micro: 9,
+  tiny: 11,
+  caption: 12,
+  small: 13,
+  body: 14,
+  bodyLg: 15,
+  lead: 16,
+  subhead: 17,
+  h4: 18,
+  h3: 19,
+  h2: 20,
+  h2Lg: 22,
+  h1: 24,
+  display: 30,
+} as const;
+
+/** Tracking con nombre — solo los valores repetidos (el sistema de caps).
+ *  Trackings de una sola aparición (arte de héroe: 2, 3, 4, 6, 10…) quedan inline. */
+export const tracking = {
+  snug: 0.4,
+  base: 0.6,
+  wide: 0.8,
+  caps: 1.2,
+} as const;
+
 // Lenguaje de botones (directiva 2026-08-11): SLABS cuadrados, nunca píldoras,
 // nunca bordes/outlines. btn=10 normal, btnLg=12 para flotantes/grandes.
 // Las etiquetas y badges SÍ pueden seguir siendo pill — solo los botones no.
 export const radius = {
+  xs: 8,
   sm: 10,
   md: 14,
   lg: 20,

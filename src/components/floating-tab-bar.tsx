@@ -38,7 +38,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassSurface } from '@/components/glass';
 import { haptic } from '@/components/motion';
-import { colors, fonts, motion, radius } from '@/lib/theme';
+import { colors, fonts, motion, radius, textSize, tracking } from '@/lib/theme';
 
 /**
  * Espacio vertical que la barra flotante ocupa sobre el borde inferior.
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.uiSemi,
-    fontSize: 9,
-    letterSpacing: 0.8,
+    fontSize: textSize.micro,
+    letterSpacing: tracking.wide,
   },
 });

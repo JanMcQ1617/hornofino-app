@@ -10,7 +10,7 @@ import { PressableScale } from '@/components/motion';
 import { BottomSheet } from '@/components/sheet';
 import { useApp } from '@/lib/state';
 import { getStore, STORES, storeOpenState, type StoreId } from '@/lib/stores';
-import { colors, fonts, motion, radius, space } from '@/lib/theme';
+import { colors, fonts, motion, radius, space, textSize } from '@/lib/theme';
 
 export function StoreSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { storeId, setStoreId } = useApp();
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: fonts.uiSemi,
-    fontSize: 16,
+    fontSize: textSize.lead,
     color: colors.ink,
     marginBottom: 2,
   },
@@ -167,19 +167,19 @@ const styles = StyleSheet.create({
   dotClosed: { backgroundColor: colors.danger },
   statusText: {
     fontFamily: fonts.uiSemi,
-    fontSize: 13,
+    fontSize: textSize.small,
   },
   statusOpen: { color: colors.verdeInk },
   statusClosed: { color: colors.danger },
   detail: {
     fontFamily: fonts.ui,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.inkSoft,
     marginBottom: 4,
   },
   hours: {
     fontFamily: fonts.ui,
-    fontSize: 12,
+    fontSize: textSize.caption,
     color: colors.inkSoft,
     marginTop: 2,
   },
@@ -199,11 +199,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ghostFill,
     paddingHorizontal: 11,
     height: 34,
-    borderRadius: 8,
+    borderRadius: radius.xs,
   },
   chipText: {
     fontFamily: fonts.uiSemi,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.verdeInk,
     maxWidth: 120,
   },

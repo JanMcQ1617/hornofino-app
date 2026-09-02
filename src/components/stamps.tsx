@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { StampEmptyIcon, StampFullIcon } from '@/components/icons';
-import { colors, fonts, space } from '@/lib/theme';
+import { colors, fonts, space, textSize } from '@/lib/theme';
 
 export function StampRow({
   stamps,
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   copy: {
     fontFamily: fonts.uiMedium,
-    fontSize: 13,
+    fontSize: textSize.small,
     color: colors.verdeInk,
   },
 });

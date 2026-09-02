@@ -4,7 +4,7 @@ import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { GhostButton } from '@/components/buttons';
-import { colors, fonts, space } from '@/lib/theme';
+import { colors, fonts, space, textSize } from '@/lib/theme';
 
 export function EmptyState({
   title,
@@ -63,14 +63,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 20,
+    fontSize: textSize.h2,
     color: colors.ink,
     textAlign: 'center',
     marginBottom: space.sm,
   },
   body: {
     fontFamily: fonts.ui,
-    fontSize: 14,
+    fontSize: textSize.body,
     lineHeight: 21,
     color: colors.inkSoft,
     textAlign: 'center',
