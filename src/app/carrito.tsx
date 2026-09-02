@@ -34,6 +34,7 @@ import {
   newClientUuid,
   resolvePayPolicy,
   startOnlinePayment,
+  getPayStatus,
   type BridgeStore,
 } from '@/lib/bridge';
 import { getPushToken } from '@/lib/push';
@@ -118,6 +119,8 @@ export default function CarritoScreen() {
   /** prepago obligatorio pero el puente no está disponible para cobrar */
   const payBlocked = mustPayOnline && !canPayOnline;
   const [payOnline, setPayOnline] = useState(false);
+  /** ref de una orden ya PAGADA — se muestra en verde, no en la caja de error */
+  const [paidRef, setPaidRef] = useState<string | null>(null);
   const useCard = canPayOnline && (mustPayOnline || payOnline);
 
   // Una sola clave por intento: si el cobro se reintenta, el puente reconoce
@@ -156,6 +159,7 @@ export default function CarritoScreen() {
     const trimmedName = orderName.trim();
     setSending(true);
     setError(null);
+    setPaidRef(null);
     try {
       const { checkoutUrl } = await startOnlinePayment({
         store: storeId,
@@ -166,8 +170,51 @@ export default function CarritoScreen() {
       });
       if (trimmedName !== name) setName(trimmedName);
       await WebBrowser.openBrowserAsync(checkoutUrl);
+
+      /*
+       * El navegador se cerró: puede que haya pagado, o que se haya arrepentido.
+       * El puente lo sabe — el webhook de Clover crea la orden con este mismo
+       * clientUuid — así que se le pregunta en vez de adivinar.
+       *
+       * Antes esto dejaba la canasta llena y un mensaje de "si pagaste, ya entró".
+       * Quien pagaba se quedaba sin confirmación y sin número de orden, mirando su
+       * canasta intacta como si no hubiera pasado nada.
+       *
+       * El webhook puede tardar un segundo en llegar, de ahí los reintentos. Si no
+       * aparece, la canasta se queda: no se borra una compra sin confirmarla.
+       */
+      let paid: Awaited<ReturnType<typeof getPayStatus>> = { found: false };
+      for (let attempt = 0; attempt < 4 && !paid.found; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, 1200));
+        paid = await getPayStatus(clientUuid.current);
+      }
+
+      if (paid.found) {
+        recordPlacedOrder(
+          {
+            lines: cart.map((l) => ({
+              itemId: l.itemId,
+              qty: l.qty,
+              ...(l.variantIndex != null ? { variantIndex: l.variantIndex } : {}),
+              ...(l.variantLabel ? { variantLabel: l.variantLabel } : {}),
+            })),
+            store: storeId,
+            total: cartSubtotal,
+            orderId: paid.ref,
+            ts: Date.now(),
+          },
+          summary,
+        );
+        clearCart();
+        // Clave nueva: la anterior ya es una compra pagada y el puente la reconocería.
+        clientUuid.current = newClientUuid();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setPaidRef(paid.ref);
+        return;
+      }
+
       setError(
-        'Si completaste el pago, tu orden entra sola a la caja. Si no, puedes volver a intentarlo — no se cobra dos veces.',
+        'Si completaste el pago, tu orden entra sola a la caja — puede tardar unos segundos en confirmarse. Si no pagaste, tu canasta sigue aquí y no se cobró nada.',
       );
     } catch (e) {
       setError(
@@ -238,6 +285,24 @@ export default function CarritoScreen() {
       setSending(false);
     }
   };
+
+  /*
+   * Un pago recién confirmado vacía la canasta, y sin esto la pantalla saltaría al
+   * "tu canasta está vacía": alguien acabaría de pagar y lo primero que vería es que
+   * no tiene nada. La confirmación va PRIMERO, con el número de orden.
+   */
+  if (paidRef) {
+    return (
+      <View style={[styles.root, { justifyContent: 'center' }]}>
+        <EmptyState
+          title="¡Pago recibido!"
+          body={`Tu orden es ${paidRef} y ya entró a la caja de ${store.short}. Solo pasa a recogerla — no hay que pagar nada más.`}
+          actionLabel="Volver a la carta"
+          onAction={() => router.back()}
+        />
+      </View>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -483,7 +548,13 @@ export default function CarritoScreen() {
 
         <View style={styles.totalBlock}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{cartHasEstimate ? 'Total estimado' : 'Total'}</Text>
+            {/* Pagando con tarjeta esto NO es el total: el IVU lo calcula Clover con las
+                tasas del register (7% en casi todo, y hay artículos exentos), así que el
+                cobro real sale en la página de pago. Llamarlo "Total" y cobrar más es
+                justo lo que hace desconfiar a alguien de una app de pagos. */}
+            <Text style={styles.totalLabel}>
+              {cartHasEstimate ? 'Total estimado' : useCard ? 'Subtotal' : 'Total'}
+            </Text>
             <Text style={styles.totalValue}>{money(cartSubtotal)}</Text>
           </View>
           {cartHasEstimate ? (
@@ -492,7 +563,13 @@ export default function CarritoScreen() {
               confirman al recoger.
             </Text>
           ) : null}
-          <Text style={styles.payNote}>Pagas al recoger, como siempre.</Text>
+          {/* La tienda puede estar en "solo pago en línea" — prometer que se paga al
+              recoger y acto seguido cobrarle la tarjeta es una mentira, no un detalle. */}
+          <Text style={styles.payNote}>
+            {useCard
+              ? 'Pagas ahora con tarjeta. El IVU se añade en la página de pago, donde ves el total exacto antes de confirmar.'
+              : 'Pagas al recoger, como siempre.'}
+          </Text>
         </View>
 
         {error ? (
@@ -503,13 +580,20 @@ export default function CarritoScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
+        {/* Sin cifra en el botón cuando se paga con tarjeta: el importe que se cobra
+            lo fija Clover con el IVU, y poner aquí el subtotal sería prometer un
+            número que no es el que se cobra. El subtotal ya se ve justo arriba. */}
         <PrimaryButton
-          label={`Enviar pedido · ${money(cartSubtotal)}`}
-          loadingLabel="Enviando tu pedido…"
+          label={useCard ? 'Continuar al pago' : `Enviar pedido · ${money(cartSubtotal)}`}
+          loadingLabel={useCard ? 'Abriendo el pago seguro…' : 'Enviando tu pedido…'}
           onPress={send}
           disabled={!canSend}
           loading={sending}
-          accessibilityLabel={`Enviar pedido por ${money(cartSubtotal)}`}
+          accessibilityLabel={
+            useCard
+              ? `Continuar al pago, subtotal ${money(cartSubtotal)} más IVU`
+              : `Enviar pedido por ${money(cartSubtotal)}`
+          }
         />
       </View>
 

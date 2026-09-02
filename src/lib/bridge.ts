@@ -104,6 +104,30 @@ export async function startOnlinePayment(
   );
 }
 
+export type PayStatus =
+  | { found: false }
+  | { found: true; ref: string; status: string; store: string };
+
+/**
+ * ¿El pago se convirtió en orden?
+ *
+ * Al pagar con tarjeta el cobro ocurre en la página de Clover, fuera del app, así
+ * que al cerrarse el navegador NO sabemos si se pagó. El puente sí: el webhook de
+ * Clover crea la orden con el mismo `clientUuid`. Preguntando por él sabemos si
+ * hubo compra — y solo entonces se puede vaciar la canasta.
+ *
+ * Nunca lanza: si no hay red, "no encontrado" es la respuesta segura (se queda la
+ * canasta). Borrarla sin confirmación sería borrarle la compra a alguien cuyo pago
+ * falló.
+ */
+export async function getPayStatus(clientUuid: string): Promise<PayStatus> {
+  try {
+    return await call<PayStatus>(`/api/pay-status?c=${encodeURIComponent(clientUuid)}`);
+  } catch {
+    return { found: false };
+  }
+}
+
 /**
  * Clave de idempotencia por intento de compra.
  *
