@@ -1,22 +1,25 @@
-// Ordenar — pantalla de ELECCIÓN (Jan, 2 sep 2026).
+// Ordenar — pantalla de ELECCIÓN, a pantalla partida (Jan, 2 sep 2026).
 //
 // Antes esta pestaña ERA el menú Light (directiva light-first del 2026-08-11):
 // abría directo en platos que nadie puede pedir todavía y el menú ordenable
-// quedaba debajo del scroll. Ahora la pestaña pregunta primero — el de
-// siempre o el Light — y cada carta vive en su propia pantalla:
+// quedaba debajo del scroll. Ahora la pestaña pregunta primero, y desde el
+// 2 sep cada opción ocupa LA MITAD DE LA PANTALLA — dos paneles flex:1, sin
+// scroll: la decisión entera se ve de una, sin deslizar.
 //   · /menu-completo → el menú regular, ordenable (única vía de ingresos hoy)
 //   · /menu-light    → HORNOFINO Light, borrador sin precios
 //
 // HONESTIDAD, regla dura: Light sigue siendo un BORRADOR sin precios
-// aprobados (LIGHT_MENU_READY en lib/menu-light.ts). La tarjeta de Light dice
-// que es borrador ANTES de que la toquen — la elección no puede insinuar que
+// aprobados (LIGHT_MENU_READY en lib/menu-light.ts). El panel de Light dice
+// que es borrador ANTES de que lo toquen — la elección no puede insinuar que
 // se puede ordenar de ahí, o la pantalla estaría vendiendo algo que no existe.
+// Por lo mismo el panel ordenable va ARRIBA: es lo único que se puede pedir.
 
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
+import React, { useId, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CartBar } from '@/components/cart-bar';
@@ -29,10 +32,48 @@ import { LIGHT_SECTIONS } from '@/lib/menu-light';
 import { MENU_SECTIONS } from '@/lib/menu';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
-import { colors, fonts, motion, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
+import { colors, fonts, motion, radius, space, textSize, tracking } from '@/lib/theme';
 
 const REGULAR_ITEM_COUNT = MENU_SECTIONS.reduce((n, s) => n + s.items.length, 0);
 const LIGHT_PLATE_COUNT = LIGHT_SECTIONS.reduce((n, s) => n + s.plates.length, 0);
+
+/**
+ * Scrim en degradado sobre la foto — mismo recurso que hero-slideshow.tsx
+ * (no hay expo-linear-gradient en el proyecto; el degradado se dibuja con
+ * react-native-svg). Sin esto el texto marfil se pierde en las zonas claras
+ * de la foto del panel de arriba.
+ */
+function Scrim({ position }: { position: 'top' | 'bottom' }) {
+  const rawId = useId();
+  const id = `ord${position}${rawId.replace(/[^a-zA-Z0-9]/g, '')}`;
+  const stops =
+    position === 'top'
+      ? [
+          { offset: '0%', opacity: 0.55 },
+          { offset: '100%', opacity: 0 },
+        ]
+      : [
+          { offset: '0%', opacity: 0 },
+          { offset: '100%', opacity: 0.82 },
+        ];
+  return (
+    <View
+      pointerEvents="none"
+      style={[styles.scrim, position === 'top' ? { top: 0, height: '42%' } : { bottom: 0, height: '68%' }]}
+    >
+      <Svg width="100%" height="100%">
+        <Defs>
+          <LinearGradient id={id} x1="0%" y1="0%" x2="0%" y2="100%">
+            {stops.map((st) => (
+              <Stop key={st.offset} offset={st.offset} stopColor={colors.ink} stopOpacity={st.opacity} />
+            ))}
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
+      </Svg>
+    </View>
+  );
+}
 
 export default function OrdenarScreen() {
   const insets = useSafeAreaInsets();
@@ -41,89 +82,77 @@ export default function OrdenarScreen() {
   const [storeSheetOpen, setStoreSheetOpen] = useState(false);
   const reduced = useReducedMotion();
 
-  // Las dos tarjetas entran escalonadas, en el orden en que se leen.
-  const enter = (i: number) =>
-    reduced ? undefined : FadeInDown.duration(motion.base).delay(i * motion.stagger);
+  // Los paneles ocupan la pantalla completa, así que el respiro va DENTRO de
+  // cada uno: arriba el notch, abajo la barra flotante de tabs (y la barra de
+  // canasta cuando hay algo dentro), que se pintan encima del panel de abajo.
+  const bottomInset = insets.bottom + TAB_BAR_CLEARANCE + (cartCount > 0 ? 76 : 0);
+  const enter = reduced ? undefined : FadeIn.duration(motion.base);
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: insets.top + space.md,
-            paddingBottom: insets.bottom + TAB_BAR_CLEARANCE + (cartCount > 0 ? 92 : space.lg),
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
+      {/* Mitad 1 — el menú de siempre. Va arriba porque es lo único que hoy
+          se puede ordenar; la foto lo hace el panel más apetecible. */}
+      <PressableScale
+        onPress={() => router.push('/menu-completo')}
+        accessibilityRole="button"
+        accessibilityLabel={`El menú de siempre: ${REGULAR_ITEM_COUNT} delicias para ordenar ahora`}
+        scaleTo={0.985}
+        style={styles.panel}
       >
-        <View style={styles.headerRow}>
+        <Image
+          source={SECTION_IMAGES.sandwiches}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          accessibilityLabel="Sandwiches de HORNOFINO"
+        />
+        <Scrim position="top" />
+        <Scrim position="bottom" />
+
+        {/* Cabecera encima de la foto: el título de la pestaña y la tienda
+            donde recoges. Sobre el scrim superior, que existe para esto. */}
+        <View style={[styles.header, { paddingTop: insets.top + space.md }]}>
           <Text style={styles.title}>Ordenar</Text>
           <StoreChip onPress={() => setStoreSheetOpen(true)} />
         </View>
 
-        <Text style={styles.lede}>¿Qué te provoca hoy?</Text>
-
-        {/* ——— El menú de siempre: lo único ordenable hoy, va primero ——— */}
-        <Animated.View entering={enter(0)}>
-          <PressableScale
-            onPress={() => router.push('/menu-completo')}
-            accessibilityRole="button"
-            accessibilityLabel={`El menú de siempre: ${REGULAR_ITEM_COUNT} delicias para ordenar ahora`}
-            style={styles.card}
-          >
-            <View style={styles.photo}>
-              <Image
-                source={SECTION_IMAGES.sandwiches}
-                style={styles.photoImg}
-                contentFit="cover"
-                accessibilityLabel="Sandwiches de HORNOFINO"
-              />
-            </View>
-            <View style={styles.cardBody}>
-              <Text style={styles.cardEyebrow}>La carta de siempre</Text>
-              <Text style={styles.cardTitle}>El menú de siempre</Text>
-              <Text style={styles.cardDesc}>
-                {REGULAR_ITEM_COUNT} delicias pa’ ordenar ahora mismo — panes, quesitos, sandwiches
-                y el café de la finca.
-              </Text>
-              <View style={[styles.stamp, styles.stampReady]}>
-                <Text style={[styles.stampText, styles.stampTextReady]}>Ordena ahora</Text>
-              </View>
-            </View>
-            <ChevronRightIcon size={18} color={colors.ink} />
-          </PressableScale>
+        <Animated.View entering={enter} style={styles.panelBody}>
+          <Text style={styles.eyebrowOnPhoto}>La carta de siempre</Text>
+          <Text style={styles.panelTitleOnPhoto}>El menú de siempre</Text>
+          <Text style={styles.panelDescOnPhoto}>
+            {REGULAR_ITEM_COUNT} delicias pa’ ordenar ahora mismo — panes, quesitos, sandwiches y el
+            café de la finca.
+          </Text>
+          <View style={styles.cta}>
+            <Text style={styles.ctaText}>Ordena ahora</Text>
+            <ChevronRightIcon size={16} color={colors.ink} />
+          </View>
         </Animated.View>
+      </PressableScale>
 
-        {/* ——— Light: se presenta como lo que es, un borrador ——— */}
-        <Animated.View entering={enter(1)}>
-          <PressableScale
-            onPress={() => router.push('/menu-light')}
-            accessibilityRole="button"
-            accessibilityLabel={`Probar HORNOFINO Light: ${LIGHT_PLATE_COUNT} platos ligeros. Borrador — se estrena pronto, todavía no se puede ordenar`}
-            style={[styles.card, styles.cardLight]}
-          >
-            <View style={styles.plateWrap}>
-              <PlateArt kind="bowl" size={64} tone="deep" />
-            </View>
-            <View style={styles.cardBody}>
-              <Text style={styles.cardEyebrow}>Velando tu salud</Text>
-              <Text style={styles.cardTitle}>HORNOFINO Light</Text>
-              <Text style={styles.cardDesc}>
-                {LIGHT_PLATE_COUNT} platos ligeros pa’ comer bien sin perder el sabor de casa.
-              </Text>
-              <View style={[styles.stamp, styles.stampDraft]}>
-                <Text style={[styles.stampText, styles.stampTextDraft]}>
-                  Borrador · se estrena pronto
-                </Text>
-              </View>
-            </View>
-            <ChevronRightIcon size={18} color={colors.ink} />
-          </PressableScale>
+      {/* Mitad 2 — Light. Superficie menta (no borde de color): en este
+          sistema menta es SUPERFICIE y todo el texto encima va en ink. */}
+      <PressableScale
+        onPress={() => router.push('/menu-light')}
+        accessibilityRole="button"
+        accessibilityLabel={`Probar HORNOFINO Light: ${LIGHT_PLATE_COUNT} platos ligeros. Borrador — se estrena pronto, todavía no se puede ordenar`}
+        scaleTo={0.985}
+        style={[styles.panel, styles.panelLight]}
+      >
+        <View style={styles.plateArt} pointerEvents="none">
+          <PlateArt kind="bowl" size={168} tone="deep" />
+        </View>
+
+        <Animated.View entering={enter} style={[styles.panelBody, { paddingBottom: bottomInset }]}>
+          <Text style={styles.eyebrow}>Velando tu salud</Text>
+          <Text style={styles.panelTitle}>HORNOFINO Light</Text>
+          <Text style={styles.panelDesc}>
+            {LIGHT_PLATE_COUNT} platos ligeros pa’ comer bien sin perder el sabor de casa.
+          </Text>
+          <View style={styles.draft}>
+            <Text style={styles.draftText}>Borrador · se estrena pronto</Text>
+          </View>
         </Animated.View>
-
-        <Text style={styles.accent}>La salud es felicidad.</Text>
-      </ScrollView>
+      </PressableScale>
 
       <CartBar bottomOffset={insets.bottom + TAB_BAR_CLEARANCE} />
       <StoreSheet visible={storeSheetOpen} onClose={() => setStoreSheetOpen(false)} />
@@ -136,112 +165,117 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.marfil,
   },
-  content: {
-    paddingHorizontal: space.lg,
+  // Las dos mitades: flex:1 cada una y sin scroll, así que cada panel mide
+  // exactamente la mitad de la pantalla en cualquier teléfono.
+  panel: {
+    flex: 1,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
   },
-  headerRow: {
+  panelLight: {
+    backgroundColor: colors.menta,
+  },
+  scrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: space.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: space.md,
-    marginBottom: space.sm,
   },
   title: {
     fontFamily: fonts.display,
     fontSize: textSize.display,
-    color: colors.ink,
+    color: '#FFFEFA',
   },
-  lede: {
-    fontFamily: fonts.displayItalic,
-    fontSize: textSize.subhead,
-    color: colors.inkSoft,
-    marginBottom: space.lg,
+  plateArt: {
+    position: 'absolute',
+    top: space.xl,
+    right: space.lg,
+    opacity: 0.9,
   },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.lg,
-    backgroundColor: colors.paper,
-    borderRadius: radius.lg,
-    padding: space.md,
-    marginBottom: space.md,
-    ...shadowCard,
+  panelBody: {
+    paddingHorizontal: space.lg,
+    paddingBottom: space.xl,
+    gap: 5,
   },
-  // Light se distingue por SUPERFICIE, no por un borde de color: menta es
-  // superficie en este sistema (regla 2), y todo el texto encima sigue INK.
-  cardLight: {
-    backgroundColor: colors.mentaSuave,
-  },
-  photo: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.btn,
-    overflow: 'hidden',
-  },
-  photoImg: {
-    width: '100%',
-    height: '100%',
-  },
-  // Mismo bloque de 72 que la foto, para que las dos tarjetas alineen el
-  // texto en la misma columna aunque una lleve grabado y la otra foto.
-  plateWrap: {
-    width: 72,
-    height: 72,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardBody: {
-    flex: 1,
-    gap: 3,
-  },
-  cardEyebrow: {
+  eyebrow: {
     fontFamily: fonts.uiSemi,
-    fontSize: textSize.tiny,
-    letterSpacing: 1.4,
+    fontSize: textSize.caption,
+    letterSpacing: 1.6,
     textTransform: 'uppercase',
     color: colors.ink,
-    opacity: 0.6,
+    opacity: 0.68,
   },
-  cardTitle: {
+  eyebrowOnPhoto: {
+    fontFamily: fonts.uiSemi,
+    fontSize: textSize.caption,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: 'rgba(255,254,250,0.86)',
+  },
+  panelTitle: {
     fontFamily: fonts.display,
-    fontSize: textSize.h2,
+    fontSize: 34,
     color: colors.ink,
   },
-  cardDesc: {
+  panelTitleOnPhoto: {
+    fontFamily: fonts.display,
+    fontSize: 34,
+    color: '#FFFEFA',
+  },
+  panelDesc: {
     fontFamily: fonts.ui,
-    fontSize: textSize.small,
-    lineHeight: 19,
+    fontSize: textSize.bodyLg,
+    lineHeight: 21,
     color: colors.inkSoft,
+    maxWidth: 320,
   },
-  stamp: {
+  panelDescOnPhoto: {
+    fontFamily: fonts.ui,
+    fontSize: textSize.bodyLg,
+    lineHeight: 21,
+    color: 'rgba(255,254,250,0.88)',
+    maxWidth: 320,
+  },
+  cta: {
     alignSelf: 'flex-start',
-    borderRadius: radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginTop: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: space.md,
+    backgroundColor: '#FFFEFA',
+    borderRadius: radius.btn,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
   },
-  stampReady: {
-    backgroundColor: colors.ghostFill,
-  },
-  stampDraft: {
-    backgroundColor: colors.ghostFillOnMenta,
-  },
-  stampText: {
-    fontFamily: fonts.uiSemi,
-    fontSize: textSize.tiny,
+  ctaText: {
+    fontFamily: fonts.uiBold,
+    fontSize: textSize.small,
     letterSpacing: tracking.snug,
+    textTransform: 'uppercase',
+    color: colors.ink,
   },
-  stampTextReady: {
-    color: colors.verdeInk,
+  draft: {
+    alignSelf: 'flex-start',
+    marginTop: space.md,
+    backgroundColor: colors.ghostFillOnMenta,
+    borderRadius: radius.btn,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
-  stampTextDraft: {
+  draftText: {
+    fontFamily: fonts.uiBold,
+    fontSize: textSize.caption,
+    letterSpacing: tracking.snug,
     color: colors.naranjaInk,
-  },
-  accent: {
-    fontFamily: fonts.displayItalic,
-    fontSize: textSize.subhead,
-    color: colors.verdeInk,
-    textAlign: 'center',
-    marginTop: space.lg,
   },
 });
