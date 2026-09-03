@@ -118,12 +118,11 @@ export default function OrdenarScreen() {
         <Animated.View entering={enter} style={styles.panelBody}>
           <Text style={styles.eyebrowOnPhoto}>La carta de siempre</Text>
           <Text style={styles.panelTitleOnPhoto}>El menú de siempre</Text>
-          <Text style={styles.panelDescOnPhoto}>
-            {REGULAR_ITEM_COUNT} delicias pa’ ordenar ahora mismo — panes, quesitos, sandwiches y el
-            café de la finca.
-          </Text>
+          {/* La descripción salió de acá (Jan, 2 sep 2026): sobre la foto,
+              eyebrow + título + dos líneas + botón se veía apretado. El
+              conteo se mueve al propio botón, que ya tenía que estar. */}
           <View style={styles.cta}>
-            <Text style={styles.ctaText}>Ordena ahora</Text>
+            <Text style={styles.ctaText}>{REGULAR_ITEM_COUNT} delicias · ordena</Text>
             <ChevronRightIcon size={16} color={colors.ink} />
           </View>
         </Animated.View>
@@ -237,13 +236,6 @@ const styles = StyleSheet.create({
     fontSize: textSize.bodyLg,
     lineHeight: 21,
     color: colors.inkSoft,
-    maxWidth: 320,
-  },
-  panelDescOnPhoto: {
-    fontFamily: fonts.ui,
-    fontSize: textSize.bodyLg,
-    lineHeight: 21,
-    color: 'rgba(255,254,250,0.88)',
     maxWidth: 320,
   },
   cta: {

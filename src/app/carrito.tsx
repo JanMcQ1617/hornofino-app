@@ -128,6 +128,19 @@ export default function CarritoScreen() {
   const clientUuid = useRef(newClientUuid());
   const [pickupTime, setPickupTime] = useState<string | null>(null);
 
+  /*
+   * Cerrado = NO se ordena (Jan, 2 sep 2026). Antes pickupSlots() salía vacía
+   * fuera de horario y el checkout simplemente caía a "lo antes posible": la
+   * orden entraba igual, a una panadería cerrada, y alguien la horneaba al
+   * abrir sin que nadie la esperara. Ahora la hora de la tienda es una
+   * compuerta, no una sugerencia.
+   *
+   * Sin useMemo a propósito, misma razón que los turnos: recalcular en cada
+   * render evita que un checkout abierto desde antes de cerrar siga creyendo
+   * que está abierto.
+   */
+  const storeClosed = openState.kind === 'closed';
+
   // Sin useMemo a propósito: son ≤17 elementos y recalcular en cada render
   // mantiene los turnos frescos si alguien deja el checkout abierto un rato.
   // Con memo, a la media hora estarías ofreciendo horas que ya pasaron.
@@ -136,7 +149,7 @@ export default function CarritoScreen() {
   // se manda "lo antes posible" en vez de prometer una hora imposible.
   const pickupValid = pickupTime != null && slots.some((sl) => sl.value === pickupTime);
 
-  const canSend = cart.length > 0 && orderName.trim().length > 0 && !sending;
+  const canSend = cart.length > 0 && orderName.trim().length > 0 && !sending && !storeClosed;
 
   const summary = useMemo(
     () => summarizeLines(cart.map((l) => ({ qty: l.qty, name: l.name }))),
@@ -156,6 +169,13 @@ export default function CarritoScreen() {
    * falló. El `clientUuid` hace que reintentar sea seguro.
    */
   const payWithCard = async () => {
+    // payWithCard se llama desde send(), pero se protege por su cuenta: es un
+    // cobro real y no puede depender de que quien lo llame haya mirado la hora.
+    const nowState = storeOpenState(store);
+    if (nowState.kind === 'closed') {
+      setError(`${store.short} está cerrada ahora mismo. Abre a las ${nowState.opensAt}.`);
+      return;
+    }
     const trimmedName = orderName.trim();
     setSending(true);
     setError(null);
@@ -231,6 +251,15 @@ export default function CarritoScreen() {
 
   const send = async () => {
     if (!canSend) return;
+    // Se vuelve a preguntar la hora AQUÍ: `storeClosed` se calculó en el
+    // último render, que pudo haber sido antes de la hora de cierre.
+    const nowState = storeOpenState(store);
+    if (nowState.kind === 'closed') {
+      setError(
+        `${store.short} está cerrada ahora mismo. Abre a las ${nowState.opensAt} — tu canasta te espera.`,
+      );
+      return;
+    }
     if (payBlocked) {
       setError(
         'Ahora mismo no podemos cobrar en línea y esta panadería solo toma órdenes pagadas. Intenta en un momento.',
@@ -412,13 +441,13 @@ export default function CarritoScreen() {
           </PressableScale>
 
           {openState.kind === 'closed' ? (
-            // Advertir, no bloquear: el servidor acepta la orden igual y la
-            // panadería la prepara al abrir. Lo que no se vale es que el
-            // cliente se entere cuando llegue a una puerta cerrada.
+            // BLOQUEA, ya no solo advierte (Jan, 2 sep 2026). Este aviso decía
+            // "puedes enviar tu orden igual"; con la compuerta puesta esa frase
+            // contradecía al botón apagado, así que cambia con la regla.
             <View style={styles.closedNote}>
               <Text style={styles.closedNoteText}>
-                Ahora mismo está cerrada. Puedes enviar tu orden igual — la preparan cuando abran
-                a las {openState.opensAt}.
+                Ahora mismo está cerrada, así que no se pueden enviar órdenes. Abre a las{' '}
+                {openState.opensAt} — tu canasta se queda guardada.
               </Text>
             </View>
           ) : openState.closingSoon ? (
@@ -584,15 +613,23 @@ export default function CarritoScreen() {
             lo fija Clover con el IVU, y poner aquí el subtotal sería prometer un
             número que no es el que se cobra. El subtotal ya se ve justo arriba. */}
         <PrimaryButton
-          label={useCard ? 'Continuar al pago' : `Enviar pedido · ${money(cartSubtotal)}`}
+          label={
+            storeClosed
+              ? `Cerrado · abre a las ${openState.opensAt}`
+              : useCard
+                ? 'Continuar al pago'
+                : `Enviar pedido · ${money(cartSubtotal)}`
+          }
           loadingLabel={useCard ? 'Abriendo el pago seguro…' : 'Enviando tu pedido…'}
           onPress={send}
           disabled={!canSend}
           loading={sending}
           accessibilityLabel={
-            useCard
-              ? `Continuar al pago, subtotal ${money(cartSubtotal)} más IVU`
-              : `Enviar pedido por ${money(cartSubtotal)}`
+            storeClosed
+              ? `${store.short} está cerrada. Abre a las ${openState.opensAt}. No se pueden enviar órdenes ahora`
+              : useCard
+                ? `Continuar al pago, subtotal ${money(cartSubtotal)} más IVU`
+                : `Enviar pedido por ${money(cartSubtotal)}`
           }
         />
       </View>

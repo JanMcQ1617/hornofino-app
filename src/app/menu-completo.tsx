@@ -322,6 +322,7 @@ export default function MenuCompletoScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(s) => s.id}
+        style={styles.chipsBar}
         contentContainerStyle={styles.chipsContent}
         onScrollToIndexFailed={() => {}}
         renderItem={({ item: section }) => (
@@ -382,6 +383,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.md,
   },
+  /* El riel es hermano flex de la lista vertical de 239 filas. Los hijos
+     flex traen flexShrink:1 por defecto, así que la lista grande le comía
+     alto al riel y las etiquetas salían CORTADAS a la mitad (Jan, 2 sep
+     2026). flexGrow/Shrink 0 lo fija a su contenido. */
+  chipsBar: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   chipsContent: {
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
@@ -418,8 +427,12 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontFamily: fonts.uiMedium,
     fontSize: textSize.tiny,
+    // lineHeight explícito: sin él la caja la decide la fuente y las tildes
+    // y descendentes de "Repostería"/"Pastelería" quedaban al filo.
+    lineHeight: 15,
     color: colors.inkSoft,
     maxWidth: 74,
+    textAlign: 'center',
   },
   chipLabelActive: {
     fontFamily: fonts.uiBold,
