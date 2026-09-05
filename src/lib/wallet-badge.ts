@@ -21,9 +21,16 @@
 
 import type { ImageSourcePropType } from 'react-native';
 
-export const WALLET_BADGE: ImageSourcePropType | null = null;
-// export const WALLET_BADGE: ImageSourcePropType | null =
-//   require('../../assets/brand/add-to-apple-wallet-es.png');
+// ACTIVADO 5 sep 2026. Jan aceptó la licencia y bajó el paquete oficial; de
+// las dos versiones en español se usa ESMX — "Agregar a Apple Wallet". La de
+// España dice "Cartera de Apple", que en Puerto Rico no lo llama nadie.
+// Rasterizado del SVG oficial a @3x (44 pt de alto), sin tocar color ni forma.
+export const WALLET_BADGE: ImageSourcePropType | null =
+  require('../../assets/brand/add-to-apple-wallet-es.png');
 
-/** Proporción del badge de Apple (ancho ÷ alto), para escalarlo sin deformarlo. */
-export const WALLET_BADGE_RATIO = 3.3;
+/**
+ * Proporción del PNG real (412 × 128 @3x = 3.219), no la del viewBox (3.153):
+ * el SVG trae un margen transparente que el recorte quitó. Con contentFit
+ * "contain" un valor equivocado solo deja aire, no deforma — pero mejor exacto.
+ */
+export const WALLET_BADGE_RATIO = 412 / 128;

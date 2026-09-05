@@ -334,14 +334,14 @@ export default function QrScreen() {
                   <Pressable
                     onPress={addToWallet}
                     accessibilityRole="button"
-                    accessibilityLabel="Añadir tu tarjeta Horno Rewards a Apple Wallet"
+                    accessibilityLabel="Agregar a Apple Wallet: tu tarjeta Horno Rewards"
                     style={({ pressed }) => [styles.walletBadgeBtn, pressed && { opacity: 0.85 }]}
                   >
                     <Image
                       source={WALLET_BADGE}
                       style={styles.walletBadge}
                       contentFit="contain"
-                      accessibilityLabel="Añadir a Apple Wallet"
+                      accessibilityLabel="Agregar a Apple Wallet"
                     />
                   </Pressable>
                 ) : (
