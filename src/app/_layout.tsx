@@ -17,6 +17,7 @@ import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { HornoIntro } from '@/components/horno-intro';
+import { hydrateMenu } from '@/lib/menu-sync';
 import { AppProvider, useApp } from '@/lib/state';
 import { colors, fonts, textSize } from '@/lib/theme';
 
@@ -153,6 +154,13 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  // La carta se hidrata al arrancar: primero la caché en disco (instantánea),
+  // luego el puente en segundo plano. Nunca bloquea el arranque — la semilla
+  // compilada ya está puesta, así que si esto falla la app abre igual.
+  useEffect(() => {
+    void hydrateMenu();
+  }, []);
+
   return (
     <AppProvider>
       <StatusBar style="dark" />

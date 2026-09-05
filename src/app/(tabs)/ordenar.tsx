@@ -29,12 +29,11 @@ import { PressableScale } from '@/components/motion';
 import { PlateArt } from '@/components/plate-art';
 import { StoreChip, StoreSheet } from '@/components/store-sheet';
 import { LIGHT_SECTIONS } from '@/lib/menu-light';
-import { MENU_SECTIONS } from '@/lib/menu';
+import { useMenuItemCount } from '@/lib/use-menu';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
 import { colors, fonts, motion, radius, space, textSize, tracking } from '@/lib/theme';
 
-const REGULAR_ITEM_COUNT = MENU_SECTIONS.reduce((n, s) => n + s.items.length, 0);
 const LIGHT_PLATE_COUNT = LIGHT_SECTIONS.reduce((n, s) => n + s.plates.length, 0);
 
 /**
@@ -81,6 +80,8 @@ export default function OrdenarScreen() {
   const { cartCount } = useApp();
   const [storeSheetOpen, setStoreSheetOpen] = useState(false);
   const reduced = useReducedMotion();
+  // La carta viene del servidor, así que la cuenta se lee en cada render.
+  const REGULAR_ITEM_COUNT = useMenuItemCount();
 
   // Los paneles ocupan la pantalla completa, así que el respiro va DENTRO de
   // cada uno: arriba el notch, abajo la barra flotante de tabs (y la barra de

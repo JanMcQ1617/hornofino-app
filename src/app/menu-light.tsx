@@ -22,13 +22,13 @@ import { CartBar } from '@/components/cart-bar';
 import { TAB_BAR_CLEARANCE } from '@/components/floating-tab-bar';
 import { PlateArt, plateKindFor } from '@/components/plate-art';
 import { LIGHT_SECTIONS } from '@/lib/menu-light';
-import { MENU_SECTIONS } from '@/lib/menu';
+import { useMenuItemCount } from '@/lib/use-menu';
 import { useApp } from '@/lib/state';
 import { colors, fonts, motion, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
 
-const REGULAR_ITEM_COUNT = MENU_SECTIONS.reduce((n, s) => n + s.items.length, 0);
 
 export default function MenuLightScreen() {
+  const REGULAR_ITEM_COUNT = useMenuItemCount();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { cartCount } = useApp();

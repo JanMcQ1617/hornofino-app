@@ -33,7 +33,8 @@ import { PressableScale } from '@/components/motion';
 import { StoreChip, StoreSheet } from '@/components/store-sheet';
 import { VariantSheet } from '@/components/variant-sheet';
 import { menuPrice } from '@/lib/format';
-import { MENU_SECTIONS, type MenuItem, type MenuSection } from '@/lib/menu';
+import { type MenuItem, type MenuSection } from '@/lib/menu';
+import { useMenu } from '@/lib/use-menu';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
 import { colors, fonts, motion, radius, space, textSize } from '@/lib/theme';
@@ -127,36 +128,50 @@ type Row =
   | { type: 'header'; section: MenuSection }
   | { type: 'item'; item: MenuItem; sectionId: string };
 
-const ROWS: Row[] = [];
-const SECTION_FIRST_INDEX: Record<string, number> = {};
-for (const section of MENU_SECTIONS) {
-  SECTION_FIRST_INDEX[section.id] = ROWS.length;
-  ROWS.push({ type: 'header', section });
-  for (const item of section.items) {
-    ROWS.push({ type: 'item', item, sectionId: section.id });
-  }
-}
+/*
+ * El layout de la lista se derivaba de la carta COMPILADA, en el módulo. Ahora
+ * la carta llega del servidor y puede cambiar mientras la pantalla vive, así
+ * que se calcula por render (useMemo). Son 252 filas: barato, y evita que
+ * getItemLayout mienta después de un refresco — que es lo que haría saltar el
+ * scroll a una posición que ya no existe.
+ */
+type MenuLayout = {
+  rows: Row[];
+  firstIndex: Record<string, number>;
+  heights: number[];
+  offsets: number[];
+};
 
-const HEIGHTS = ROWS.map((r) => (r.type === 'header' ? HEADER_H : ROW_H));
-const OFFSETS: number[] = [];
-{
+function buildLayout(sections: MenuSection[]): MenuLayout {
+  const rows: Row[] = [];
+  const firstIndex: Record<string, number> = {};
+  for (const section of sections) {
+    firstIndex[section.id] = rows.length;
+    rows.push({ type: 'header', section });
+    for (const item of section.items) {
+      rows.push({ type: 'item', item, sectionId: section.id });
+    }
+  }
+  const heights = rows.map((r) => (r.type === 'header' ? HEADER_H : ROW_H));
+  const offsets: number[] = [];
   let acc = 0;
-  for (const h of HEIGHTS) {
-    OFFSETS.push(acc);
+  for (const h of heights) {
+    offsets.push(acc);
     acc += h;
   }
+  return { rows, firstIndex, heights, offsets };
 }
 
 /** Sección visible dada la posición de scroll (búsqueda binaria sobre offsets). */
-function sectionAtOffset(y: number): string {
+function sectionAtOffset(layout: MenuLayout, y: number): string {
   let lo = 0;
-  let hi = OFFSETS.length - 1;
+  let hi = layout.offsets.length - 1;
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
-    if (OFFSETS[mid] <= y) lo = mid;
+    if (layout.offsets[mid] <= y) lo = mid;
     else hi = mid - 1;
   }
-  const row = ROWS[lo];
+  const row = layout.rows[lo];
   return row.type === 'header' ? row.section.id : row.sectionId;
 }
 
@@ -239,7 +254,9 @@ export default function MenuCompletoScreen() {
   const { addToCart, qtyInCart, cartCount } = useApp();
   const [variantItem, setVariantItem] = useState<MenuItem | null>(null);
   const [storeSheetOpen, setStoreSheetOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState(MENU_SECTIONS[0].id);
+  const sections = useMenu();
+  const layout = useMemo(() => buildLayout(sections), [sections]);
+  const [activeSection, setActiveSection] = useState(sections[0].id);
 
   const listRef = useRef<FlatList<Row>>(null);
   const chipsRef = useRef<FlatList<MenuSection>>(null);
@@ -254,30 +271,30 @@ export default function MenuCompletoScreen() {
   );
 
   const jumpTo = useCallback((sectionId: string) => {
-    const index = SECTION_FIRST_INDEX[sectionId];
+    const index = layout.firstIndex[sectionId];
     if (index == null) return;
     scrollingFromChip.current = true;
     setActiveSection(sectionId);
-    listRef.current?.scrollToOffset({ offset: OFFSETS[index], animated: true });
+    listRef.current?.scrollToOffset({ offset: layout.offsets[index], animated: true });
     setTimeout(() => {
       scrollingFromChip.current = false;
     }, 600);
-  }, []);
+  }, [layout]);
 
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (scrollingFromChip.current) return;
-      const id = sectionAtOffset(e.nativeEvent.contentOffset.y + 10);
-      setActiveSection((prev) => {
+      const id = sectionAtOffset(layout, e.nativeEvent.contentOffset.y + 10);
+      setActiveSection((prev: string) => {
         if (prev === id) return prev;
-        const chipIndex = MENU_SECTIONS.findIndex((s) => s.id === id);
+        const chipIndex = sections.findIndex((s: MenuSection) => s.id === id);
         if (chipIndex >= 0) {
           chipsRef.current?.scrollToIndex({ index: chipIndex, viewPosition: 0.5, animated: true });
         }
         return id;
       });
     },
-    [],
+    [layout, sections],
   );
 
   const renderRow = useCallback(
@@ -318,7 +335,7 @@ export default function MenuCompletoScreen() {
     () => (
       <FlatList
         ref={chipsRef}
-        data={MENU_SECTIONS}
+        data={sections}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(s) => s.id}
@@ -348,10 +365,10 @@ export default function MenuCompletoScreen() {
       {chips}
       <FlatList
         ref={listRef}
-        data={ROWS}
+        data={layout.rows}
         renderItem={renderRow}
         keyExtractor={(row, i) => (row.type === 'header' ? `h-${row.section.id}` : `${row.item.id}-${i}`)}
-        getItemLayout={(_, index) => ({ length: HEIGHTS[index], offset: OFFSETS[index], index })}
+        getItemLayout={(_, index) => ({ length: layout.heights[index], offset: layout.offsets[index], index })}
         onScroll={onScroll}
         scrollEventThrottle={80}
         initialNumToRender={14}

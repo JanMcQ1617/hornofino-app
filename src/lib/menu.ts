@@ -29,7 +29,7 @@ export type MenuSection = {
   items: MenuItem[];
 };
 
-export const MENU_SECTIONS: MenuSection[] = [
+export const BUNDLED_SECTIONS: MenuSection[] = [
   {
     id: 'mega-quesito',
     title: 'Mega Quesito',
@@ -362,14 +362,68 @@ export const MENU_SECTIONS: MenuSection[] = [
   },
 ];
 
-/** Búsqueda rápida de un item por id (para repetir órdenes guardadas). */
-const ITEM_INDEX: Record<string, { item: MenuItem; section: MenuSection }> = {};
-for (const section of MENU_SECTIONS) {
-  for (const item of section.items) {
-    ITEM_INDEX[item.id] = { item, section };
+/* ------------------------------------------------------------------ *
+ * Carta VIVA
+ *
+ * La de arriba es la semilla: lo que trae el binario para poder abrir sin
+ * red y en el primer arranque. La de verdad la sirve el puente
+ * (GET /api/app-menu), que la parsea del menu-data.js del sitio — la misma
+ * fuente de la que sale el precio. Así un cambio de precio ya no obliga a
+ * recompilar la app y volver a subirla a TestFlight.
+ *
+ * Nunca se queda vacía: si la red falla, o la respuesta viene rota, se
+ * conserva lo que hubiera (caché en disco, o la semilla).
+ * ------------------------------------------------------------------ */
+
+let liveSections: MenuSection[] = BUNDLED_SECTIONS;
+let itemIndex = buildIndex(BUNDLED_SECTIONS);
+const listeners = new Set<() => void>();
+
+function buildIndex(sections: MenuSection[]) {
+  const ix: Record<string, { item: MenuItem; section: MenuSection }> = {};
+  for (const section of sections) {
+    for (const item of section.items) ix[item.id] = { item, section };
   }
+  return ix;
 }
 
+/** La carta que deben pintar las pantallas. */
+export function getMenuSections(): MenuSection[] {
+  return liveSections;
+}
+
+/**
+ * Reemplaza la carta viva. Devuelve false y NO toca nada si lo que llega no
+ * es una carta usable — mejor una carta vieja que una pantalla vacía.
+ */
+export function setMenuSections(sections: unknown): boolean {
+  if (!isUsableMenu(sections)) return false;
+  liveSections = sections;
+  itemIndex = buildIndex(sections);
+  listeners.forEach((fn) => fn());
+  return true;
+}
+
+/** Validación mínima: sin esto, un 500 en HTML dejaría la carta en blanco. */
+export function isUsableMenu(v: unknown): v is MenuSection[] {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every(
+      (s) =>
+        s && typeof s.id === 'string' && typeof s.title === 'string' &&
+        Array.isArray(s.items) && s.items.length > 0 &&
+        s.items.every((i: MenuItem) => i && typeof i.id === 'string' && typeof i.name === 'string'),
+    )
+  );
+}
+
+export function subscribeMenu(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+/** Búsqueda rápida de un item por id (para repetir órdenes guardadas). */
 export function findMenuItem(id: string): { item: MenuItem; section: MenuSection } | undefined {
-  return ITEM_INDEX[id];
+  return itemIndex[id];
 }
