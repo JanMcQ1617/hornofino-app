@@ -376,7 +376,7 @@ export default function CarritoScreen() {
                 <Text style={styles.lineUnit}>
                   {line.from ? 'desde ' : ''}
                   {line.unitPrice != null ? money(line.unitPrice) : ''}
-                  {line.from ? ' · se confirma en tienda' : ''}
+                  {line.from ? ', se confirma en tienda' : ''}
                 </Text>
               </View>
               <View style={styles.stepper}>
@@ -615,10 +615,10 @@ export default function CarritoScreen() {
         <PrimaryButton
           label={
             storeClosed
-              ? `Cerrado · abre a las ${openState.opensAt}`
+              ? `Cerrado hasta las ${openState.opensAt}`
               : useCard
                 ? 'Continuar al pago'
-                : `Enviar pedido · ${money(cartSubtotal)}`
+                : `Enviar pedido de ${money(cartSubtotal)}`
           }
           loadingLabel={useCard ? 'Abriendo el pago seguro…' : 'Enviando tu pedido…'}
           onPress={send}

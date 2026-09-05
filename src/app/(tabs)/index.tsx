@@ -55,7 +55,6 @@ export default function InicioScreen() {
   const { name, card, lastOrder, localOrders, repeatLastOrder, refreshCard } = useApp();
   const [storeSheetOpen, setStoreSheetOpen] = useState(false);
   const [activeStatus, setActiveStatus] = useState<OrderStatusName | null>(null);
-  const [heroPaused, setHeroPaused] = useState(false);
   const [headerH, setHeaderH] = useState(150);
 
   const firstName = name.trim().split(/\s+/)[0] ?? '';
@@ -96,16 +95,8 @@ export default function InicioScreen() {
   return (
     <View style={styles.root}>
       <HeroSlideshow
-        paused={heroPaused || storeSheetOpen}
+        paused={storeSheetOpen}
         dotsStyle={{ top: headerH + 10, right: space.lg }}
-      />
-      {/* la foto pausa el slideshow mientras el dedo esté encima */}
-      <Pressable
-        style={StyleSheet.absoluteFill}
-        onPressIn={() => setHeroPaused(true)}
-        onPressOut={() => setHeroPaused(false)}
-        importantForAccessibility="no"
-        accessible={false}
       />
 
       <View style={styles.overlay} pointerEvents="box-none">

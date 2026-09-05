@@ -155,14 +155,22 @@ export const tracking = {
 // Lenguaje de botones (directiva 2026-08-11): SLABS cuadrados, nunca píldoras,
 // nunca bordes/outlines. btn=10 normal, btnLg=12 para flotantes/grandes.
 // Las etiquetas y badges SÍ pueden seguir siendo pill — solo los botones no.
+/*
+ * Casi a escuadra (Jan, 4 sep 2026) — el mismo giro que se le dio al sitio.
+ * "Casi" y no 0 a propósito: 2–4px mantiene el canto legible en pantalla
+ * (una esquina de 0 sobre foto se ve dentada en densidades @3x) y sigue
+ * leyéndose como recto. `pill` se queda: lo usan cosas que son de verdad
+ * redondas — el punto de estado, el contador, el chip de tienda — y
+ * cuadrarlas las convertiría en cajitas, que no es lo que se pidió.
+ */
 export const radius = {
-  xs: 8,
-  sm: 10,
-  md: 14,
-  lg: 20,
-  xl: 28,
-  btn: 10,
-  btnLg: 12,
+  xs: 2,
+  sm: 2,
+  md: 3,
+  lg: 4,
+  xl: 4,
+  btn: 2,
+  btnLg: 2,
   pill: 999,
 } as const;
 

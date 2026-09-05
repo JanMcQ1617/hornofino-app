@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Animated,
+  PanResponder,
   StyleSheet,
   View,
   type StyleProp,
@@ -126,15 +127,42 @@ export function HeroSlideshow({
     }, []),
   );
 
+  /*
+   * Deslizar para cambiar de foto (Jan, 4 sep 2026).
+   *
+   * El gesto vive ACÁ y no en un Pressable de la pantalla: aquel estaba por
+   * ENCIMA del slideshow y se comía el deslizamiento antes de que llegara.
+   * Esta capa queda debajo del contenido (la cabecera usa box-none), así que
+   * un toque en un botón sigue yendo al botón y solo el fondo vacío desliza.
+   *
+   * onMoveShouldSet solo toma el gesto cuando el movimiento es claramente
+   * horizontal (|dx| > 12 y mayor que |dy|), para no robarle el scroll
+   * vertical a nada que se añada después.
+   */
+  const [dragging, setDragging] = useState(false);
+  const pan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderGrant: () => setDragging(true),
+      onPanResponderRelease: (_e, g) => {
+        setDragging(false);
+        const n = HERO_SLIDES.length;
+        if (g.dx <= -48) setIndex((i) => (i + 1) % n);
+        else if (g.dx >= 48) setIndex((i) => (i - 1 + n) % n);
+      },
+      onPanResponderTerminate: () => setDragging(false),
+    }),
+  ).current;
+
   // Avance automático — solo con la pantalla al frente, sin dedo encima
   // y sin reduce-motion activado.
   useEffect(() => {
-    if (reduceMotion || paused || !focused) return;
+    if (reduceMotion || paused || dragging || !focused) return;
     const t = setInterval(() => {
       setIndex((i) => (i + 1) % HERO_SLIDES.length);
     }, SLIDE_MS);
     return () => clearInterval(t);
-  }, [reduceMotion, paused, focused]);
+  }, [reduceMotion, paused, dragging, focused]);
 
   // Crossfade hacia el slide activo.
   useEffect(() => {
@@ -181,7 +209,8 @@ export function HeroSlideshow({
   }
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <View style={StyleSheet.absoluteFill} {...pan.panHandlers} />
       {HERO_SLIDES.map((src, i) => (
         <Animated.View
           key={i}

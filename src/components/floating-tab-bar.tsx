@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 5,
     bottom: 5,
-    borderRadius: 17,
+    borderRadius: 4, // casi a escuadra, como el resto
     backgroundColor: colors.mentaSuave,
   },
   item: {

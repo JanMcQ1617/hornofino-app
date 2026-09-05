@@ -1,24 +1,32 @@
-// Ordenar — pantalla de ELECCIÓN, a pantalla partida (Jan, 2 sep 2026).
+// Ordenar — la pantalla donde se escoge carta.
 //
-// Antes esta pestaña ERA el menú Light (directiva light-first del 2026-08-11):
-// abría directo en platos que nadie puede pedir todavía y el menú ordenable
-// quedaba debajo del scroll. Ahora la pestaña pregunta primero, y desde el
-// 2 sep cada opción ocupa LA MITAD DE LA PANTALLA — dos paneles flex:1, sin
-// scroll: la decisión entera se ve de una, sin deslizar.
-//   · /menu-completo → el menú regular, ordenable (única vía de ingresos hoy)
-//   · /menu-light    → HORNOFINO Light, borrador sin precios
+// HISTORIA, para no repetir el mismo error dos veces:
+//   · 11 ago — la pestaña ERA el menú Light: abría en platos que nadie puede
+//              pedir, y el menú ordenable quedaba debajo del scroll.
+//   ·  2 sep — dos mitades iguales: foto arriba, menta abajo.
+//   ·  4 sep — esto.
 //
-// HONESTIDAD, regla dura: Light sigue siendo un BORRADOR sin precios
-// aprobados (LIGHT_MENU_READY en lib/menu-light.ts). El panel de Light dice
-// que es borrador ANTES de que lo toquen — la elección no puede insinuar que
-// se puede ordenar de ahí, o la pantalla estaría vendiendo algo que no existe.
-// Por lo mismo el panel ordenable va ARRIBA: es lo único que se puede pedir.
+// POR QUÉ SE REHIZO. Las dos mitades iguales le daban el mismo peso a lo que
+// da de comer y a un borrador, y la mitad de menta quedaba plana. Encima
+// llevaba una pastilla que decía "Borrador · se estrena pronto": ese punto
+// medio pegando dos fragmentos es justo el tic que hace que una interfaz
+// parezca generada, y fue lo que Jan marcó.
+//
+// LO QUE HAY AHORA. No son dos mitades: es una CARTA y una NOTA AL PIE. La
+// carta ordenable se queda con la foto y con 62% de la pantalla, porque es lo
+// único que se puede pedir hoy. Light baja a una banda de menta más corta,
+// donde el estado se dice en una frase entera en vez de en una etiqueta.
+// Sin pastillas y sin "·" pegando trozos: cada línea es una oración.
+//
+// HONESTIDAD, la regla que no se toca: Light NO tiene precios aprobados
+// (LIGHT_MENU_READY en lib/menu-light.ts). La banda dice que es borrador ANTES
+// de que nadie la toque, y la carta que sí se puede pedir va primero.
 
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useId, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,43 +37,29 @@ import { PressableScale } from '@/components/motion';
 import { PlateArt } from '@/components/plate-art';
 import { StoreChip, StoreSheet } from '@/components/store-sheet';
 import { LIGHT_SECTIONS } from '@/lib/menu-light';
-import { useMenuItemCount } from '@/lib/use-menu';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
+import { useMenuItemCount } from '@/lib/use-menu';
 import { colors, fonts, motion, radius, space, textSize, tracking } from '@/lib/theme';
 
 const LIGHT_PLATE_COUNT = LIGHT_SECTIONS.reduce((n, s) => n + s.plates.length, 0);
 
 /**
- * Scrim en degradado sobre la foto — mismo recurso que hero-slideshow.tsx
- * (no hay expo-linear-gradient en el proyecto; el degradado se dibuja con
- * react-native-svg). Sin esto el texto marfil se pierde en las zonas claras
- * de la foto del panel de arriba.
+ * Scrim sobre la foto. No hay expo-linear-gradient en el proyecto, así que el
+ * degradado se dibuja con react-native-svg — mismo recurso que hero-slideshow.
+ * Sin esto el texto blanco se pierde en las migas claras del pan.
  */
-function Scrim({ position }: { position: 'top' | 'bottom' }) {
+function Scrim() {
   const rawId = useId();
-  const id = `ord${position}${rawId.replace(/[^a-zA-Z0-9]/g, '')}`;
-  const stops =
-    position === 'top'
-      ? [
-          { offset: '0%', opacity: 0.55 },
-          { offset: '100%', opacity: 0 },
-        ]
-      : [
-          { offset: '0%', opacity: 0 },
-          { offset: '100%', opacity: 0.82 },
-        ];
+  const id = `ord${rawId.replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
-    <View
-      pointerEvents="none"
-      style={[styles.scrim, position === 'top' ? { top: 0, height: '42%' } : { bottom: 0, height: '68%' }]}
-    >
+    <View pointerEvents="none" style={styles.scrim}>
       <Svg width="100%" height="100%">
         <Defs>
           <LinearGradient id={id} x1="0%" y1="0%" x2="0%" y2="100%">
-            {stops.map((st) => (
-              <Stop key={st.offset} offset={st.offset} stopColor={colors.ink} stopOpacity={st.opacity} />
-            ))}
+            <Stop offset="0%" stopColor={colors.ink} stopOpacity={0} />
+            <Stop offset="55%" stopColor={colors.ink} stopOpacity={0.55} />
+            <Stop offset="100%" stopColor={colors.ink} stopOpacity={0.92} />
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
@@ -80,78 +74,74 @@ export default function OrdenarScreen() {
   const { cartCount } = useApp();
   const [storeSheetOpen, setStoreSheetOpen] = useState(false);
   const reduced = useReducedMotion();
-  // La carta viene del servidor, así que la cuenta se lee en cada render.
-  const REGULAR_ITEM_COUNT = useMenuItemCount();
+  const itemCount = useMenuItemCount();
 
-  // Los paneles ocupan la pantalla completa, así que el respiro va DENTRO de
-  // cada uno: arriba el notch, abajo la barra flotante de tabs (y la barra de
-  // canasta cuando hay algo dentro), que se pintan encima del panel de abajo.
   const bottomInset = insets.bottom + TAB_BAR_CLEARANCE + (cartCount > 0 ? 76 : 0);
-  const enter = reduced ? undefined : FadeIn.duration(motion.base);
+  const enter = reduced ? undefined : FadeInDown.duration(motion.base);
 
   return (
     <View style={styles.root}>
-      {/* Mitad 1 — el menú de siempre. Va arriba porque es lo único que hoy
-          se puede ordenar; la foto lo hace el panel más apetecible. */}
+      {/* ——— La carta que sí se puede pedir ——— */}
       <PressableScale
         onPress={() => router.push('/menu-completo')}
         accessibilityRole="button"
-        accessibilityLabel={`El menú de siempre: ${REGULAR_ITEM_COUNT} delicias para ordenar ahora`}
-        scaleTo={0.985}
-        style={styles.panel}
+        accessibilityLabel={`El menú de siempre. Ver las ${itemCount} delicias y ordenar`}
+        scaleTo={0.99}
+        style={styles.carta}
       >
         <Image
           source={SECTION_IMAGES.sandwiches}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
-          accessibilityLabel="Sandwiches de HORNOFINO"
+          accessibilityLabel="Sandwich de HORNOFINO"
         />
-        <Scrim position="top" />
-        <Scrim position="bottom" />
+        <Scrim />
 
-        {/* Cabecera encima de la foto: el título de la pestaña y la tienda
-            donde recoges. Sobre el scrim superior, que existe para esto. */}
         <View style={[styles.header, { paddingTop: insets.top + space.md }]}>
           <Text style={styles.title}>Ordenar</Text>
           <StoreChip onPress={() => setStoreSheetOpen(true)} />
         </View>
 
-        <Animated.View entering={enter} style={styles.panelBody}>
-          <Text style={styles.eyebrowOnPhoto}>La carta de siempre</Text>
-          <Text style={styles.panelTitleOnPhoto}>El menú de siempre</Text>
-          {/* La descripción salió de acá (Jan, 2 sep 2026): sobre la foto,
-              eyebrow + título + dos líneas + botón se veía apretado. El
-              conteo se mueve al propio botón, que ya tenía que estar. */}
+        <Animated.View entering={enter} style={styles.cartaBody}>
+          <Text style={styles.kicker}>La carta de la panadería</Text>
+          <Text style={styles.cartaTitle}>El menú{'\n'}de siempre</Text>
+          {/* Barra ancha, no un botón chiquito: es la única acción de esta
+              mitad, y el conteo va DENTRO, que es donde se lee sin adornos. */}
           <View style={styles.cta}>
-            <Text style={styles.ctaText}>{REGULAR_ITEM_COUNT} delicias · ordena</Text>
-            <ChevronRightIcon size={16} color={colors.ink} />
+            <Text style={styles.ctaText}>Ver las {itemCount} delicias</Text>
+            <ChevronRightIcon size={17} color={colors.ink} />
           </View>
         </Animated.View>
       </PressableScale>
 
-      {/* Mitad 2 — Light. Superficie menta (no borde de color): en este
-          sistema menta es SUPERFICIE y todo el texto encima va en ink. */}
+      {/* ——— Light: nota al pie, no segunda mitad ———
+          Menta es SUPERFICIE (1.94:1), así que todo el texto encima va en ink.
+          Ver la nota de contraste al principio de theme.ts. */}
       <PressableScale
         onPress={() => router.push('/menu-light')}
         accessibilityRole="button"
-        accessibilityLabel={`Probar HORNOFINO Light: ${LIGHT_PLATE_COUNT} platos ligeros. Borrador — se estrena pronto, todavía no se puede ordenar`}
-        scaleTo={0.985}
-        style={[styles.panel, styles.panelLight]}
+        accessibilityLabel={`HORNOFINO Light: ${LIGHT_PLATE_COUNT} platos ligeros. Todavía es un borrador y no se puede ordenar`}
+        scaleTo={0.99}
+        style={[styles.light, { paddingBottom: bottomInset }]}
       >
-        <View style={styles.plateArt} pointerEvents="none">
-          <PlateArt kind="bowl" size={168} tone="deep" />
+        {/* El bowl se sale por el borde: da profundidad sin pedir una foto que
+            para estos platos todavía no existe. */}
+        <View style={styles.lightArt} pointerEvents="none">
+          <PlateArt kind="bowl" size={190} tone="deep" />
         </View>
 
-        <Animated.View entering={enter} style={[styles.panelBody, { paddingBottom: bottomInset }]}>
-          <Text style={styles.eyebrow}>Velando tu salud</Text>
-          <Text style={styles.panelTitle}>HORNOFINO Light</Text>
-          <Text style={styles.panelDesc}>
-            {LIGHT_PLATE_COUNT} platos ligeros pa’ comer bien sin perder el sabor de casa.
+        <View style={styles.lightBody}>
+          <Text style={styles.lightKicker}>Velando tu salud</Text>
+          <Text style={styles.lightTitle}>HORNOFINO Light</Text>
+          <Text style={styles.lightNote}>
+            {LIGHT_PLATE_COUNT} platos ligeros que todavía estamos afinando. Puedes verlos, pero
+            por ahora no se piden: las recetas y los precios los deciden ellos.
           </Text>
-          <View style={styles.draft}>
-            <Text style={styles.draftText}>Borrador · se estrena pronto</Text>
+          <View style={styles.lightLinkRow}>
+            <Text style={styles.lightLink}>Míralos igual</Text>
+            <ChevronRightIcon size={15} color={colors.verdeInk} />
           </View>
-        </Animated.View>
+        </View>
       </PressableScale>
 
       <CartBar bottomOffset={insets.bottom + TAB_BAR_CLEARANCE} />
@@ -165,20 +155,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.marfil,
   },
-  // Las dos mitades: flex:1 cada una y sin scroll, así que cada panel mide
-  // exactamente la mitad de la pantalla en cualquier teléfono.
-  panel: {
-    flex: 1,
+  /* 62/38 en vez de 50/50: manda la carta que da de comer, y la banda de Light
+     se lee como pie de página en vez de como una opción equivalente. */
+  carta: {
+    flex: 62,
     overflow: 'hidden',
     justifyContent: 'flex-end',
-  },
-  panelLight: {
-    backgroundColor: colors.menta,
   },
   scrim: {
     position: 'absolute',
     left: 0,
     right: 0,
+    bottom: 0,
+    height: '72%',
   },
   header: {
     position: 'absolute',
@@ -194,81 +183,91 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.display,
     fontSize: textSize.display,
-    color: '#FFFEFA',
+    color: '#FFFFFF',
   },
-  plateArt: {
-    position: 'absolute',
-    top: space.xl,
-    right: space.lg,
-    opacity: 0.9,
-  },
-  panelBody: {
+  cartaBody: {
     paddingHorizontal: space.lg,
     paddingBottom: space.xl,
-    gap: 5,
   },
-  eyebrow: {
+  kicker: {
     fontFamily: fonts.uiSemi,
     fontSize: textSize.caption,
-    letterSpacing: 1.6,
+    letterSpacing: tracking.wide,
     textTransform: 'uppercase',
-    color: colors.ink,
-    opacity: 0.68,
+    color: 'rgba(255,255,255,0.82)',
+    marginBottom: 6,
   },
-  eyebrowOnPhoto: {
-    fontFamily: fonts.uiSemi,
-    fontSize: textSize.caption,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    color: 'rgba(255,254,250,0.86)',
-  },
-  panelTitle: {
+  cartaTitle: {
     fontFamily: fonts.display,
-    fontSize: 34,
-    color: colors.ink,
-  },
-  panelTitleOnPhoto: {
-    fontFamily: fonts.display,
-    fontSize: 34,
-    color: '#FFFEFA',
-  },
-  panelDesc: {
-    fontFamily: fonts.ui,
-    fontSize: textSize.bodyLg,
-    lineHeight: 21,
-    color: colors.inkSoft,
-    maxWidth: 320,
+    fontSize: 40,
+    lineHeight: 43,
+    color: '#FFFFFF',
+    marginBottom: space.lg,
   },
   cta: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: space.md,
-    backgroundColor: '#FFFEFA',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.btn,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
+    paddingHorizontal: space.lg,
+    paddingVertical: 15,
   },
   ctaText: {
     fontFamily: fonts.uiBold,
-    fontSize: textSize.small,
+    fontSize: textSize.bodyLg,
     letterSpacing: tracking.snug,
-    textTransform: 'uppercase',
     color: colors.ink,
   },
-  draft: {
-    alignSelf: 'flex-start',
-    marginTop: space.md,
-    backgroundColor: colors.ghostFillOnMenta,
-    borderRadius: radius.btn,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+
+  light: {
+    flex: 38,
+    backgroundColor: colors.menta,
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  draftText: {
-    fontFamily: fonts.uiBold,
+  lightArt: {
+    position: 'absolute',
+    right: -42,
+    top: -28,
+    opacity: 0.42,
+  },
+  lightBody: {
+    paddingHorizontal: space.lg,
+  },
+  lightKicker: {
+    fontFamily: fonts.uiSemi,
     fontSize: textSize.caption,
+    letterSpacing: tracking.wide,
+    textTransform: 'uppercase',
+    color: colors.ink,
+    opacity: 0.6,
+    marginBottom: 4,
+  },
+  lightTitle: {
+    fontFamily: fonts.display,
+    fontSize: 27,
+    color: colors.ink,
+    marginBottom: 7,
+  },
+  lightNote: {
+    fontFamily: fonts.ui,
+    fontSize: textSize.body,
+    lineHeight: 20,
+    color: colors.ink,
+    opacity: 0.82,
+    maxWidth: 300,
+  },
+  lightLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: space.md,
+  },
+  lightLink: {
+    fontFamily: fonts.uiBold,
+    fontSize: textSize.body,
     letterSpacing: tracking.snug,
-    color: colors.naranjaInk,
+    color: colors.verdeInk,
   },
 });

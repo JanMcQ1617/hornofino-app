@@ -48,7 +48,7 @@ function summarizeOrderItems(order: MyOrderSummary): string {
       return `${it.qty}× ${name}`;
     })
     .join(' · ')
-    .concat(order.items.length > 2 ? ` · +${order.items.length - 2} más` : '');
+    .concat(order.items.length > 2 ? `, y ${order.items.length - 2} más` : '');
 }
 
 export default function CuentaScreen() {

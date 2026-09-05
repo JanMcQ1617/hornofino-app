@@ -56,12 +56,10 @@ export function StoreSheet({ visible, onClose }: { visible: boolean; onClose: ()
                   const st = storeOpenState(store);
                   return (
                     <View style={styles.statusRow}>
-                      <View
-                        style={[
-                          styles.statusDot,
-                          st.kind === 'open' ? styles.dotOpen : styles.dotClosed,
-                        ]}
-                      />
+                      {/* Sin puntito: la línea ya DICE "Abierto"/"Cerrado", así que
+                          el punto de color no añade información — solo repite el
+                          estado en un idioma que nadie leyó. El color del texto
+                          hace ese trabajo. */}
                       <Text
                         style={[
                           styles.statusText,
@@ -70,9 +68,9 @@ export function StoreSheet({ visible, onClose }: { visible: boolean; onClose: ()
                       >
                         {st.kind === 'open'
                           ? st.closingSoon
-                            ? `Cierra pronto · ${st.closesAt}`
-                            : `Abierto · cierra ${st.closesAt}`
-                          : `Cerrado · abre ${st.opensAt}`}
+                            ? `Cierra pronto, a las ${st.closesAt}`
+                            : `Abierto hasta las ${st.closesAt}`
+                          : `Cerrado, abre a las ${st.opensAt}`}
                       </Text>
                     </View>
                   );
@@ -126,7 +124,10 @@ export function StoreChip({ onPress }: { onPress: () => void }) {
       <Text style={styles.chipText} numberOfLines={1}>
         {store.short}
       </Text>
-      {st.kind === 'closed' ? <View style={[styles.statusDot, styles.dotClosed]} /> : null}
+      {/* Se dice con una palabra, no con un punto de color. Un puntito rojo sin
+          etiqueta solo significa algo para quien lo diseñó — y es justo el tipo
+          de "indicador de estado" que delata una interfaz generada. */}
+      {st.kind === 'closed' ? <Text style={styles.chipClosed}>cerrado</Text> : null}
       <ChevronDownIcon size={11} color={colors.verdeInk} />
     </Pressable>
   );
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
   check: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: 3,
     backgroundColor: colors.verde,
     alignItems: 'center',
     justifyContent: 'center',
@@ -206,5 +207,10 @@ const styles = StyleSheet.create({
     fontSize: textSize.small,
     color: colors.verdeInk,
     maxWidth: 120,
+  },
+  chipClosed: {
+    fontFamily: fonts.ui,
+    fontSize: textSize.caption,
+    color: colors.naranjaInk,
   },
 });

@@ -235,7 +235,7 @@ export default function PedidoScreen() {
                   </Text>
                   <Text style={styles.stepDetail}>
                     {current && order.statusTs
-                      ? `${step.detail} · ${orderDate(order.statusTs)}`
+                      ? `${step.detail}, ${orderDate(order.statusTs)}`
                       : step.detail}
                   </Text>
                 </View>
@@ -351,14 +351,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: 3,
     borderWidth: 2,
     borderColor: colors.verde,
   },
   stepDot: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: 3,
     borderWidth: 2,
     borderColor: colors.line,
     backgroundColor: colors.paper,

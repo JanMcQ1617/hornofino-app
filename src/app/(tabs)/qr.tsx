@@ -7,10 +7,12 @@ import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import * as WebBrowser from 'expo-web-browser';
+import { Image } from 'expo-image';
 import {
   KeyboardAvoidingView,
   Linking,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -23,6 +25,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GhostButton, PrimaryButton } from '@/components/buttons';
+import { WALLET_BADGE, WALLET_BADGE_RATIO } from '@/lib/wallet-badge';
 import { TAB_BAR_CLEARANCE } from '@/components/floating-tab-bar';
 import { TicketIcon } from '@/components/icons';
 import { PunchCard } from '@/components/punch-card';
@@ -325,12 +328,32 @@ export default function QrScreen() {
               </Text>
               <Text style={styles.showHint}>Enséñalo en caja pa’ tu sello</Text>
               {walletReady ? (
-                <GhostButton
-                  label="Añadir a Apple Wallet"
-                  onPress={addToWallet}
-                  accessibilityLabel="Añadir tu tarjeta Horno Rewards a Apple Wallet"
-                  style={styles.walletBtn}
-                />
+                WALLET_BADGE ? (
+                  /* Badge oficial de Apple. Se respeta su proporción y el alto
+                     mínimo de 30 pt; el color y el dibujo no se tocan. */
+                  <Pressable
+                    onPress={addToWallet}
+                    accessibilityRole="button"
+                    accessibilityLabel="Añadir tu tarjeta Horno Rewards a Apple Wallet"
+                    style={({ pressed }) => [styles.walletBadgeBtn, pressed && { opacity: 0.85 }]}
+                  >
+                    <Image
+                      source={WALLET_BADGE}
+                      style={styles.walletBadge}
+                      contentFit="contain"
+                      accessibilityLabel="Añadir a Apple Wallet"
+                    />
+                  </Pressable>
+                ) : (
+                  /* Sin el artwork de Apple todavía: botón de texto honesto,
+                     que NO imita el badge. Ver src/lib/wallet-badge.ts. */
+                  <GhostButton
+                    label="Añadir a Apple Wallet"
+                    onPress={addToWallet}
+                    accessibilityLabel="Añadir tu tarjeta Horno Rewards a Apple Wallet"
+                    style={styles.walletBtn}
+                  />
+                )
               ) : null}
             </View>
 
@@ -462,6 +485,16 @@ const styles = StyleSheet.create({
   },
   // Dentro de qrCard (alignItems center) el slab se encogería al texto;
   // stretch lo deja a todo lo ancho, como los botones del resto de la pantalla.
+  walletBadgeBtn: {
+    alignSelf: 'center',
+    marginTop: space.md,
+    // 10% de aire alrededor, como pide la guía del badge
+    padding: 5,
+  },
+  walletBadge: {
+    height: 44,          // por encima del mínimo de 30 pt
+    width: 44 * WALLET_BADGE_RATIO,
+  },
   walletBtn: {
     marginTop: space.lg,
     alignSelf: 'stretch',
