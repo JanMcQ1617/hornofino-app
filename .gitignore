@@ -41,3 +41,7 @@ example
 # generated native folders
 /ios
 /android
+
+# Identifica el proyecto de Firebase de HORNOFINO. Hace falta para compilar
+# Android (FCM) pero no viaja con el repo. Ver docs/android.md.
+google-services.json

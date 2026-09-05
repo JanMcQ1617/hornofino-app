@@ -18,6 +18,7 @@ import { View } from 'react-native';
 
 import { HornoIntro } from '@/components/horno-intro';
 import { hydrateMenu } from '@/lib/menu-sync';
+import { ensureAndroidChannel } from '@/lib/push';
 import { AppProvider, useApp } from '@/lib/state';
 import { colors, fonts, textSize } from '@/lib/theme';
 
@@ -159,6 +160,9 @@ export default function RootLayout() {
   // compilada ya está puesta, así que si esto falla la app abre igual.
   useEffect(() => {
     void hydrateMenu();
+    // El canal de Android también al arrancar, no solo al pedir permiso: quien
+    // ya lo concedió en una instalación anterior nunca vuelve a pasar por ahí.
+    void ensureAndroidChannel();
   }, []);
 
   return (

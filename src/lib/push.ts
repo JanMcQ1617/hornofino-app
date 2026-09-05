@@ -29,6 +29,37 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/**
+ * Android exige que TODA notificación pertenezca a un canal (API 26+, Android
+ * 8). Sin canal el aviso NO se muestra: no falla, no avisa, simplemente no
+ * aparece — el fallo más silencioso de la plataforma.
+ *
+ * El id es `default` a propósito: el servidor (sendOrderPush en api.mjs) manda
+ * a Expo sin `channelId`, y Expo entrega al canal `default`. Crearlo con ese id
+ * exacto le pone nombre en español, importancia alta y el verde de la marca,
+ * sin tocar el servidor. Si algún día el servidor mandara un channelId propio,
+ * hay que crear ESE canal aquí también.
+ *
+ * Idempotente: volver a llamarla actualiza el canal, no lo duplica. En iOS no
+ * hace nada.
+ */
+export async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Tu orden',
+      description: 'Avisos de cuándo tu orden se está preparando y cuándo está lista.',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#0E9B72',
+    });
+  } catch (err) {
+    // Un canal que no se pudo crear no puede tumbar nada: la orden manda.
+    console.warn('[push] no se pudo crear el canal de Android:', err);
+  }
+}
+
 /** El projectId de EAS. Sin él Expo no puede emitir un push token. */
 function projectId(): string | undefined {
   return (
@@ -54,6 +85,10 @@ export async function getPushToken(): Promise<string | null> {
       granted = asked.granted;
     }
     if (!granted) return null;
+
+    // El canal ANTES de pedir el token: en Android tiene que existir para que
+    // el primer aviso se vea, y el primero es justo el de esta orden.
+    await ensureAndroidChannel();
 
     const id = projectId();
     if (!id) {
