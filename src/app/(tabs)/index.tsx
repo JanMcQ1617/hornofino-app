@@ -18,6 +18,7 @@ import { getOrderStatus, type OrderStatusName } from '@/lib/api';
 import { money } from '@/lib/format';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
+import { tagline } from '@/lib/taglines';
 import { colors, fonts, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
 
 const STATUS_LABEL: Record<OrderStatusName, string> = {
@@ -70,6 +71,11 @@ export default function InicioScreen() {
     return 'Buenas noches';
   })();
 
+  /* La frase del día. tagline() ya devuelve SIEMPRE la misma dentro de un
+     arranque (la escoge su módulo al cargarse), así que esto no necesita
+     useMemo ni estado: cambiar de pestaña no cambia el texto. */
+  const phrase = tagline();
+
   const recent = localOrders[0];
   const recentIsFresh = recent != null && Date.now() - recent.ts < 3 * 60 * 60 * 1000;
 
@@ -120,13 +126,24 @@ export default function InicioScreen() {
               a la derecha, Horno Rewards con la panadería DEBAJO. Antes la
               tienda colgaba del saludo y empujaba la banda hacia abajo; ahora
               las dos columnas comparten alto y la banda encoge sola.
-              Fuera "Velando tu salud": es el lema de Light, no del inicio, y
-              era la tercera línea que engordaba la cabecera. */}
+              "Velando tu salud" se fue de aquí (es el lema de Light, no el
+              del inicio) y con él la tercera línea. Jan echó de menos que
+              hubiera ALGO ahí: vuelve como una frase distinta en cada
+              arranque (lib/taglines.ts, 100 de ellas). */}
           <View style={styles.headerRow}>
-            <Text style={styles.hello} numberOfLines={2}>
-              {greeting}
-              {firstName ? `, ${firstName}` : ''}.
-            </Text>
+            <View style={styles.helloCol}>
+              <Text style={styles.hello} numberOfLines={2}>
+                {greeting}
+                {firstName ? `, ${firstName}` : ''}.
+              </Text>
+              {/* numberOfLines=1: la banda mide su propio alto (onLayout) y
+                  una frase que a veces ocupara dos líneas movería el héroe
+                  de sitio entre arranques. Por eso taglines.ts las mantiene
+                  cortas, en vez de dejar que esto recorte. */}
+              <Text style={styles.tagline} numberOfLines={1}>
+                {phrase}
+              </Text>
+            </View>
 
             <View style={styles.headerRight}>
               <Pressable
@@ -286,12 +303,24 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: space.sm,
   },
-  hello: {
+  helloCol: {
     flex: 1,
+  },
+  hello: {
     fontFamily: fonts.display,
     fontSize: 26,
     lineHeight: 31,
     color: colors.ink,
+  },
+  /* En caja baja, no en versalitas anchas como el lema fijo de antes: ahora es
+     una oración de hasta 40 caracteres, y en mayúsculas con tracking de 1.8 no
+     cabía en una línea. */
+  tagline: {
+    marginTop: 3,
+    fontFamily: fonts.uiSemi,
+    fontSize: textSize.tiny,
+    letterSpacing: 0.2,
+    color: colors.verdeInk,
   },
   counter: {
     alignItems: 'flex-end',
