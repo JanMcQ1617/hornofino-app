@@ -12,7 +12,7 @@
       "icon": "./assets/images/icon.png",
       "supportsTablet": false,
       "bundleIdentifier": "com.mcqueenygroup.hornofino",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "entitlements": {
         "aps-environment": "production"
       },
