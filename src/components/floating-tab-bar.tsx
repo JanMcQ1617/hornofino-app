@@ -36,9 +36,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GlassSurface } from '@/components/glass';
 import { haptic } from '@/components/motion';
-import { colors, fonts, motion, radius, textSize, tracking } from '@/lib/theme';
+import { colors, fonts, motion, radius, shadowBar, textSize, tracking } from '@/lib/theme';
 
 /**
  * Espacio vertical que la barra flotante ocupa sobre el borde inferior.
@@ -182,7 +181,13 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
       pointerEvents="box-none"
       style={[styles.wrap, { bottom: Math.max(insets.bottom, 12) + 2 }]}
     >
-      <GlassSurface cornerRadius={radius.xl} style={styles.bar}>
+      {/* Losa SÓLIDA, no cristal (Jan, 5 sep 2026). El Liquid Glass refractaba
+          la foto oscura del inicio y la barra se veía gris cuando nadie la
+          tocaba. Ahora lleva el mismo marfil de la cabecera, así que arriba y
+          abajo son el mismo material. Sigue flotando — posición absoluta,
+          margen a los lados y sombra — así que el contenido continúa por
+          debajo y no queda un zócalo pegado al borde. */}
+      <View style={styles.bar}>
         <View
           style={styles.row}
           onLayout={(e) => setBarW(Math.round(e.nativeEvent.layout.width))}
@@ -232,7 +237,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBa
             );
           })}
         </View>
-      </GlassSurface>
+      </View>
     </View>
   );
 }
@@ -243,10 +248,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
-  // El relleno, el canto y la sombra los pone GlassSurface. Aquí solo
-  // queda dónde va la barra.
   bar: {
     marginHorizontal: 14,
+    backgroundColor: colors.marfil,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+    ...shadowBar,
   },
   row: {
     flexDirection: 'row',

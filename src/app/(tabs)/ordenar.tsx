@@ -81,6 +81,14 @@ export default function OrdenarScreen() {
 
   return (
     <View style={styles.root}>
+      {/* Cabecera sólida, igual que la de Inicio (Jan, 5 sep 2026). Antes el
+          título y el chip iban ENCIMA de la foto y "Cupey" se perdía contra el
+          pan. Con banda propia se lee siempre y las dos pestañas combinan. */}
+      <View style={[styles.headerBand, { paddingTop: insets.top + space.sm }]}>
+        <Text style={styles.title}>Ordenar</Text>
+        <StoreChip onPress={() => setStoreSheetOpen(true)} />
+      </View>
+
       {/* ——— La carta que sí se puede pedir ——— */}
       <PressableScale
         onPress={() => router.push('/menu-completo')}
@@ -97,13 +105,7 @@ export default function OrdenarScreen() {
         />
         <Scrim />
 
-        <View style={[styles.header, { paddingTop: insets.top + space.md }]}>
-          <Text style={styles.title}>Ordenar</Text>
-          <StoreChip onPress={() => setStoreSheetOpen(true)} />
-        </View>
-
         <Animated.View entering={enter} style={styles.cartaBody}>
-          <Text style={styles.kicker}>La carta de la panadería</Text>
           <Text style={styles.cartaTitle}>El menú{'\n'}de siempre</Text>
           {/* Barra ancha, no un botón chiquito: es la única acción de esta
               mitad, y el conteo va DENTRO, que es donde se lee sin adornos. */}
@@ -131,14 +133,12 @@ export default function OrdenarScreen() {
         </View>
 
         <View style={styles.lightBody}>
-          <Text style={styles.lightKicker}>Velando tu salud</Text>
           <Text style={styles.lightTitle}>HORNOFINO Light</Text>
           <Text style={styles.lightNote}>
-            {LIGHT_PLATE_COUNT} platos ligeros que todavía estamos afinando. Puedes verlos, pero
-            por ahora no se piden: las recetas y los precios los deciden ellos.
+            {LIGHT_PLATE_COUNT} platos ligeros, todavía en borrador. Aún no se piden.
           </Text>
           <View style={styles.lightLinkRow}>
-            <Text style={styles.lightLink}>Míralos igual</Text>
+            <Text style={styles.lightLink}>Ver el borrador</Text>
             <ChevronRightIcon size={15} color={colors.verdeInk} />
           </View>
         </View>
@@ -169,12 +169,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: '72%',
   },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+  /* Misma banda que Inicio: marfil sólido, título e ink, chip a la derecha. */
+  headerBand: {
     paddingHorizontal: space.lg,
+    paddingBottom: space.md,
+    backgroundColor: colors.marfil,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -183,19 +182,11 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.display,
     fontSize: textSize.display,
-    color: '#FFFFFF',
+    color: colors.ink,
   },
   cartaBody: {
     paddingHorizontal: space.lg,
     paddingBottom: space.xl,
-  },
-  kicker: {
-    fontFamily: fonts.uiSemi,
-    fontSize: textSize.caption,
-    letterSpacing: tracking.wide,
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.82)',
-    marginBottom: 6,
   },
   cartaTitle: {
     fontFamily: fonts.display,
@@ -234,15 +225,6 @@ const styles = StyleSheet.create({
   },
   lightBody: {
     paddingHorizontal: space.lg,
-  },
-  lightKicker: {
-    fontFamily: fonts.uiSemi,
-    fontSize: textSize.caption,
-    letterSpacing: tracking.wide,
-    textTransform: 'uppercase',
-    color: colors.ink,
-    opacity: 0.6,
-    marginBottom: 4,
   },
   lightTitle: {
     fontFamily: fonts.display,

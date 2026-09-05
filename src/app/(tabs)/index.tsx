@@ -58,6 +58,17 @@ export default function InicioScreen() {
   const [headerH, setHeaderH] = useState(150);
 
   const firstName = name.trim().split(/\s+/)[0] ?? '';
+  /* Saludo por hora del día, en hora de Puerto Rico (AST, sin horario de
+     verano) — no en la del teléfono, que puede venir de viaje. Se recalcula
+     en cada render: la pantalla se vuelve a montar al cambiar de pestaña, así
+     que a las 12:01 ya dice "Buenas tardes" sin nada que lo refresque. */
+  const greeting = (() => {
+    const pr = new Date(Date.now() + new Date().getTimezoneOffset() * 60_000 - 4 * 3600_000);
+    const h = pr.getHours();
+    if (h < 12) return 'Buenos días';
+    if (h < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  })();
 
   const recent = localOrders[0];
   const recentIsFresh = recent != null && Date.now() - recent.ts < 3 * 60 * 60 * 1000;
@@ -105,35 +116,40 @@ export default function InicioScreen() {
           style={[styles.headerBand, { paddingTop: insets.top + space.sm }]}
           onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}
         >
+          {/* Cabecera más fina (Jan, 5 sep 2026): el saludo a la izquierda y,
+              a la derecha, Horno Rewards con la panadería DEBAJO. Antes la
+              tienda colgaba del saludo y empujaba la banda hacia abajo; ahora
+              las dos columnas comparten alto y la banda encoge sola.
+              Fuera "Velando tu salud": es el lema de Light, no del inicio, y
+              era la tercera línea que engordaba la cabecera. */}
           <View style={styles.headerRow}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.hello}>
-                Buenas{firstName ? `, ${firstName}` : ''}.
-              </Text>
-              <Text style={styles.tagline}>Velando tu salud</Text>
-              <View style={{ marginTop: space.sm }}>
-                <StoreChip onPress={() => setStoreSheetOpen(true)} />
-              </View>
+            <Text style={styles.hello} numberOfLines={2}>
+              {greeting}
+              {firstName ? `, ${firstName}` : ''}.
+            </Text>
+
+            <View style={styles.headerRight}>
+              <Pressable
+                onPress={() => router.push('/qr')}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  card
+                    ? `Horno Rewards: ${card.stamps} de ${card.goal} sellos. Ver mi tarjeta`
+                    : 'Horno Rewards: únete gratis'
+                }
+                style={({ pressed }) => [styles.counter, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={styles.counterLabel}>Horno Rewards</Text>
+                {card ? (
+                  <StampDots filled={card.stamps} goal={card.goal} />
+                ) : (
+                  <View style={styles.joinPill}>
+                    <Text style={styles.joinPillText}>Únete gratis</Text>
+                  </View>
+                )}
+              </Pressable>
+              <StoreChip onPress={() => setStoreSheetOpen(true)} />
             </View>
-            <Pressable
-              onPress={() => router.push('/qr')}
-              accessibilityRole="button"
-              accessibilityLabel={
-                card
-                  ? `Horno Rewards: ${card.stamps} de ${card.goal} sellos. Ver mi tarjeta`
-                  : 'Horno Rewards: únete gratis'
-              }
-              style={({ pressed }) => [styles.counter, pressed && { opacity: 0.7 }]}
-            >
-              <Text style={styles.counterLabel}>Horno Rewards</Text>
-              {card ? (
-                <StampDots filled={card.stamps} goal={card.goal} />
-              ) : (
-                <View style={styles.joinPill}>
-                  <Text style={styles.joinPillText}>Únete gratis</Text>
-                </View>
-              )}
-            </Pressable>
           </View>
         </View>
 
@@ -256,7 +272,7 @@ const styles = StyleSheet.create({
   // decisión. De paso la foto queda sin velo: color pleno desde el primer píxel.
   headerBand: {
     paddingHorizontal: space.lg,
-    paddingBottom: space.lg,
+    paddingBottom: space.md,          // era space.lg — banda más fina
     backgroundColor: colors.marfil,
   },
   headerRow: {
@@ -265,22 +281,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.md,
   },
-  headerLeft: {
-    flex: 1,
+  /* Rewards arriba, panadería debajo, ambos alineados a la derecha. */
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: space.sm,
   },
   hello: {
+    flex: 1,
     fontFamily: fonts.display,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 26,
+    lineHeight: 31,
     color: colors.ink,
-  },
-  tagline: {
-    marginTop: 2,
-    fontFamily: fonts.uiSemi,
-    fontSize: textSize.tiny,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase',
-    color: colors.verdeInk,
   },
   counter: {
     alignItems: 'flex-end',
