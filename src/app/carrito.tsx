@@ -40,7 +40,7 @@ import {
 import { getPushToken } from '@/lib/push';
 import { money, summarizeLines } from '@/lib/format';
 import { useApp } from '@/lib/state';
-import { getStore, pickupSlots, storeOpenState } from '@/lib/stores';
+import { getStore, pickupDays, pickupSlots, prToday, storeOpenState } from '@/lib/stores';
 import { colors, fonts, motion, radius, space, textSize, tracking } from '@/lib/theme';
 
 export default function CarritoScreen() {
@@ -127,6 +127,7 @@ export default function CarritoScreen() {
   // que es la MISMA compra y no crea una orden duplicada.
   const clientUuid = useRef(newClientUuid());
   const [pickupTime, setPickupTime] = useState<string | null>(null);
+  const [pickupDay, setPickupDay] = useState<string | null>(null);
 
   /*
    * Cerrado = NO se ordena (Jan, 2 sep 2026). Antes pickupSlots() salía vacía
@@ -139,12 +140,28 @@ export default function CarritoScreen() {
    * render evita que un checkout abierto desde antes de cerrar siga creyendo
    * que está abierto.
    */
-  const storeClosed = openState.kind === 'closed';
+  /*
+    Los días que esta tienda puede ofrecer. Si ya cerró, la lista empieza en
+    "Mañana" — y eso es lo que permite ordenar de noche.
+  */
+  const days = pickupDays(store);
+  const today = prToday();
+  const chosenDay =
+    pickupDay && days.some((d) => d.value === pickupDay) ? pickupDay : days[0]?.value ?? null;
+  const forToday = chosenDay == null || chosenDay === today;
+
+  /*
+    Cerrado = no se ordena PARA HOY (Jan, 2 sep 2026). Para otro día sí: el
+    puente lo acepta desde el 5 sep y aguanta el ticket hasta esa mañana. Antes
+    esto bloqueaba cualquier orden con la tienda cerrada — justo cuando alguien
+    quiere dejar pedido el pan de mañana.
+  */
+  const storeClosed = openState.kind === 'closed' && forToday;
 
   // Sin useMemo a propósito: son ≤17 elementos y recalcular en cada render
   // mantiene los turnos frescos si alguien deja el checkout abierto un rato.
   // Con memo, a la media hora estarías ofreciendo horas que ya pasaron.
-  const slots = pickupSlots(store);
+  const slots = pickupSlots(store, new Date(), chosenDay ?? undefined);
   // Si el turno elegido se cayó de la lista (pasó la hora, o cambió de tienda),
   // se manda "lo antes posible" en vez de prometer una hora imposible.
   const pickupValid = pickupTime != null && slots.some((sl) => sl.value === pickupTime);
@@ -171,8 +188,10 @@ export default function CarritoScreen() {
   const payWithCard = async () => {
     // payWithCard se llama desde send(), pero se protege por su cuenta: es un
     // cobro real y no puede depender de que quien lo llame haya mirado la hora.
+    // Solo bloquea si la recogida es para HOY: dejar pedido para otro día con
+    // la tienda cerrada es exactamente lo que esto viene a permitir.
     const nowState = storeOpenState(store);
-    if (nowState.kind === 'closed') {
+    if (forToday && nowState.kind === 'closed') {
       setError(`${store.short} está cerrada ahora mismo. Abre a las ${nowState.opensAt}.`);
       return;
     }
@@ -186,6 +205,8 @@ export default function CarritoScreen() {
         cart: cart.map((l) => ({ itemId: l.itemId, qty: l.qty })),
         customer: { name: trimmedName },
         ...(pickupValid && pickupTime ? { pickupTime } : {}),
+        // Sin la fecha el puente imprime el ticket HOY, no el día de la recogida.
+        ...(chosenDay && chosenDay !== today ? { pickupDate: chosenDay } : {}),
         clientUuid: clientUuid.current,
       });
       if (trimmedName !== name) setName(trimmedName);
@@ -254,7 +275,7 @@ export default function CarritoScreen() {
     // Se vuelve a preguntar la hora AQUÍ: `storeClosed` se calculó en el
     // último render, que pudo haber sido antes de la hora de cierre.
     const nowState = storeOpenState(store);
-    if (nowState.kind === 'closed') {
+    if (forToday && nowState.kind === 'closed') {
       setError(
         `${store.short} está cerrada ahora mismo. Abre a las ${nowState.opensAt} — tu canasta te espera.`,
       );
@@ -287,6 +308,7 @@ export default function CarritoScreen() {
         ...(card?.code ? { card: card.code } : {}),
         ...(pushToken ? { pushToken } : {}),
         ...(pickupValid && pickupTime ? { pickupTime } : {}),
+        ...(chosenDay && chosenDay !== today ? { pickupDate: chosenDay } : {}),
       });
       if (trimmedName !== name) setName(trimmedName);
       recordPlacedOrder(
@@ -446,8 +468,9 @@ export default function CarritoScreen() {
             // contradecía al botón apagado, así que cambia con la regla.
             <View style={styles.closedNote}>
               <Text style={styles.closedNoteText}>
-                Ahora mismo está cerrada, así que no se pueden enviar órdenes. Abre a las{' '}
-                {openState.opensAt} — tu canasta se queda guardada.
+                {forToday
+                  ? `Ahora mismo está cerrada, así que no se puede pedir para hoy. Abre a las ${openState.opensAt} — o escoge otro día aquí abajo.`
+                  : 'Está cerrada ahora, pero tu orden queda apuntada para el día que escogiste.'}
               </Text>
             </View>
           ) : openState.closingSoon ? (
@@ -459,9 +482,47 @@ export default function CarritoScreen() {
           ) : null}
         </View>
 
+        {/* El DÍA va antes que la hora: escoger "mañana" cambia qué horas
+            existen, así que preguntarlo al revés obligaría a volver atrás.
+            Solo aparece si de verdad hay más de un día que ofrecer. */}
+        {days.length > 1 ? (
+          <View style={styles.block}>
+            <Text style={styles.blockLabel}>¿Qué día la buscas?</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.slotRow}
+            >
+              {days.map((d) => {
+                const on = chosenDay === d.value;
+                return (
+                  <PressableScale
+                    key={d.value}
+                    onPress={() => {
+                      setPickupDay(d.value);
+                      // La hora elegida pertenecía al día anterior: si no se
+                      // suelta, se prometería una hora que ese día no existe.
+                      setPickupTime(null);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`Recoger ${d.label}`}
+                    style={[styles.slot, on && styles.slotOn]}
+                  >
+                    <Text style={[styles.slotText, on && styles.slotTextOn]}>{d.label}</Text>
+                  </PressableScale>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
+
         {slots.length > 0 ? (
           <View style={styles.block}>
-            <Text style={styles.blockLabel}>¿A qué hora la buscas?</Text>
+            <Text style={styles.blockLabel}>
+              {forToday ? '¿A qué hora la buscas?' : '¿A qué hora la buscas ese día?'}
+            </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}

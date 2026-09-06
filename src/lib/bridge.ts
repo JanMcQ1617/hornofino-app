@@ -82,6 +82,14 @@ export type PayInput = {
   cart: BridgeCartLine[];
   customer: { name: string; phone?: string };
   pickupTime?: string;
+  /**
+   * Día de recogida, "YYYY-MM-DD" en hora de Puerto Rico.
+   *
+   * Sin esto el puente trata la orden como de HOY: cobra bien, pero imprime el
+   * ticket esta noche en vez del día que toca. Va como texto a propósito —
+   * convertirlo a Date y volver mueve la fecha un día en Puerto Rico.
+   */
+  pickupDate?: string;
   /** clave de idempotencia — el mismo intento no puede cobrar dos veces */
   clientUuid: string;
 };

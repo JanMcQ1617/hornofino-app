@@ -140,16 +140,84 @@ export type PickupSlot = { value: string; label: string };
  *    qué día, que es justo el tipo de ambigüedad que hace que alguien llegue
  *    a una puerta cerrada.
  */
-export function pickupSlots(store: Store, now: Date = new Date()): PickupSlot[] {
-  const { minutes, day } = prNow(now);
-  const today = day === 0 ? store.open.sunday : store.open.weekday;
+export function pickupSlots(store: Store, now: Date = new Date(), ymd?: string): PickupSlot[] {
+  const today = prToday(now);
+  const target = ymd ?? today;
+  const isToday = target === today;
 
-  const earliest = Math.max(minutes + PREP_MIN, today.from);
-  // redondea hacia arriba al siguiente múltiplo de SLOT_MIN
+  const { minutes } = prNow(now);
+  const win = weekdayOf(target) === 0 ? store.open.sunday : store.open.weekday;
+
+  /*
+    Para HOY manda el reloj: nunca antes de PREP_MIN, y solo hasta WINDOW_MIN
+    hacia adelante — ofrecer las 8 PM a las 9 AM llena la lista de horas que
+    nadie va a escoger.
+
+    Para OTRO DÍA no hay reloj que respetar: se ofrece el día entero, porque a
+    quien deja pedido el pan de mañana le da igual qué hora es ahora.
+  */
+  const earliest = isToday ? Math.max(minutes + PREP_MIN, win.from) : win.from;
   const first = Math.ceil(earliest / SLOT_MIN) * SLOT_MIN;
-  const last = Math.min(today.to, minutes + WINDOW_MIN);
+  const last = isToday ? Math.min(win.to, minutes + WINDOW_MIN) : win.to;
 
   const out: PickupSlot[] = [];
   for (let t = first; t <= last; t += SLOT_MIN) out.push({ value: fmt(t), label: fmt(t) });
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Recoger otro día                                                    */
+/* ------------------------------------------------------------------ */
+
+/*
+  Igual que en la web y en el puente: una semana. Más allá es un encargo y se
+  cotiza en /catering. El puente rechaza con 409 `too_far` lo que pase de aquí,
+  así que este número tiene que coincidir con el suyo.
+*/
+export const PICKUP_MAX_DAYS = 7;
+
+/** Hoy en Puerto Rico, "YYYY-MM-DD". */
+export function prToday(now: Date = new Date()): string {
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60_000;
+  const pr = new Date(utcMs + AST_OFFSET_MIN * 60_000);
+  return `${pr.getFullYear()}-${String(pr.getMonth() + 1).padStart(2, '0')}-${String(pr.getDate()).padStart(2, '0')}`;
+}
+
+/** Suma días sin salir del texto: convertir a Date y volver mueve el día. */
+export function addDays(ymd: string, n: number): string {
+  // Mediodía UTC: ningún huso puede empujar la fecha al día de al lado.
+  return new Date(Date.parse(`${ymd}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+}
+
+function weekdayOf(ymd: string): number {
+  return new Date(`${ymd}T12:00:00Z`).getUTCDay();
+}
+
+export type PickupDay = { value: string; label: string };
+
+const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MONTH_NAMES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/**
+ * Los días que esta tienda puede ofrecer, empezando por hoy.
+ *
+ * Hoy solo aparece si TODAVÍA queda algún turno: si ya cerró, la lista empieza
+ * en "Mañana" — que es justo lo que hace útil esto de noche.
+ */
+export function pickupDays(store: Store, now: Date = new Date()): PickupDay[] {
+  const today = prToday(now);
+  const out: PickupDay[] = [];
+  for (let i = 0; i <= PICKUP_MAX_DAYS; i++) {
+    const ymd = addDays(today, i);
+    if (pickupSlots(store, now, ymd).length === 0) continue;
+    let label: string;
+    if (i === 0) label = 'Hoy';
+    else if (i === 1) label = 'Mañana';
+    else {
+      const d = new Date(`${ymd}T12:00:00Z`);
+      label = `${DAY_NAMES[d.getUTCDay()]} ${d.getUTCDate()} ${MONTH_NAMES[d.getUTCMonth()]}`;
+    }
+    out.push({ value: ymd, label });
+  }
   return out;
 }
