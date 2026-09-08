@@ -28,9 +28,20 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { colors } from '@/lib/theme';
 
+/*
+  Comida y LOCAL alternados. Antes eran cinco platos seguidos: apetitoso, pero
+  no decía dónde. Intercaladas, las fotos del sitio contestan "¿a dónde voy?"
+  mientras las de comida contestan "¿qué me llevo?".
+
+  El encuadre de las dos del local se eligió pensando en la FRANJA CENTRAL:
+  a pantalla completa el teléfono recorta los lados y solo se ve el centro,
+  así que la vitrina y la barra están centradas ahí, no en la foto entera.
+*/
 const HERO_SLIDES = [
   SECTION_IMAGES.brunch,
+  SECTION_IMAGES['tienda-vitrina'],
   SECTION_IMAGES['cafe-y-te'],
+  SECTION_IMAGES['tienda-barra'],
   SECTION_IMAGES.reposteria,
   SECTION_IMAGES.bizcochos,
   SECTION_IMAGES.panes,

@@ -6,6 +6,10 @@ import type { ImageSourcePropType } from 'react-native';
 
 export const SECTION_IMAGES: Record<string, ImageSourcePropType> = {
   'mega-quesito': require('../../assets/menu/mega-quesito.webp'),
+  // Fotos del LOCAL, no de comida. Solo se usan en el slideshow de Inicio:
+  // el resto de la app las ignora porque no hay sección que se llame así.
+  'tienda-vitrina': require('../../assets/menu/tienda-vitrina.webp'),
+  'tienda-barra': require('../../assets/menu/tienda-barra.webp'),
   panes: require('../../assets/menu/panes.webp'),
   reposteria: require('../../assets/menu/reposteria.webp'),
   pasteleria: require('../../assets/menu/pasteleria.webp'),
