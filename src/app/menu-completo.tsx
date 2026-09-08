@@ -11,6 +11,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -255,7 +256,49 @@ export default function MenuCompletoScreen() {
   const [variantItem, setVariantItem] = useState<MenuItem | null>(null);
   const [storeSheetOpen, setStoreSheetOpen] = useState(false);
   const sections = useMenu();
-  const layout = useMemo(() => buildLayout(sections), [sections]);
+  const [query, setQuery] = useState('');
+
+  /*
+    BUSCAR SIN ACENTOS Y SIN MAYÚSCULAS. Media carta lleva tilde (quesito de
+    guayaba, café, jamón, mantecaditos) y nadie las escribe al buscar desde el
+    teléfono. Sin normalizar, "cafe" no encuentra "Café con Leche" — que es
+    justo lo que la gente teclea.
+  */
+  const q = useMemo(
+    () => query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(),
+    [query],
+  );
+
+  /*
+    Se filtran SECCIONES enteras, no una lista plana de artículos, para que el
+    resultado siga llevando su cabecera: "Croqueta de Jamón" solo se entiende
+    si encima dice Pastelería. Y así buildLayout y getItemLayout siguen
+    funcionando igual, sin un segundo camino de medidas que mantener.
+
+    Cada palabra por separado: "pan agua" encuentra "Pan de Agua" aunque el
+    "de" no se escriba.
+  */
+  const visibleSections = useMemo(() => {
+    if (!q) return sections;
+    const palabras = q.split(/\s+/).filter(Boolean);
+    const limpia = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    return sections
+      .map((sec: MenuSection) => ({
+        ...sec,
+        items: sec.items.filter((it) => {
+          const heno = limpia(`${it.name} ${sec.title}`);
+          return palabras.every((p) => heno.includes(p));
+        }),
+      }))
+      .filter((sec: MenuSection) => sec.items.length > 0);
+  }, [sections, q]);
+
+  const buscando = q.length > 0;
+  const encontrados = useMemo(
+    () => visibleSections.reduce((n: number, sec: MenuSection) => n + sec.items.length, 0),
+    [visibleSections],
+  );
+  const layout = useMemo(() => buildLayout(visibleSections), [visibleSections]);
   const [activeSection, setActiveSection] = useState(sections[0].id);
 
   const listRef = useRef<FlatList<Row>>(null);
@@ -283,7 +326,7 @@ export default function MenuCompletoScreen() {
 
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (scrollingFromChip.current) return;
+      if (scrollingFromChip.current || layout.rows.length === 0) return;
       const id = sectionAtOffset(layout, e.nativeEvent.contentOffset.y + 10);
       setActiveSection((prev: string) => {
         if (prev === id) return prev;
@@ -358,11 +401,35 @@ export default function MenuCompletoScreen() {
     <View style={styles.root}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <View />
+          <View style={styles.searchBox}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Buscar en la carta"
+              placeholderTextColor={colors.inkFaint}
+              style={styles.searchInput}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+              accessibilityLabel="Buscar en la carta"
+            />
+          </View>
           <StoreChip onPress={() => setStoreSheetOpen(true)} />
         </View>
       </View>
-      {chips}
+      {/* Los chips de categoría se esconden al buscar: enseñar "Panes" activo
+          mientras la lista solo tiene tres tostadas es mentir sobre dónde
+          estás. En su lugar va cuántas cosas se encontraron. */}
+      {buscando ? (
+        <Text style={styles.searchCount}>
+          {encontrados === 0
+            ? 'Nada con ese nombre'
+            : `${encontrados} ${encontrados === 1 ? 'delicia' : 'delicias'}`}
+        </Text>
+      ) : (
+        chips
+      )}
       <FlatList
         ref={listRef}
         data={layout.rows}
@@ -376,6 +443,18 @@ export default function MenuCompletoScreen() {
         windowSize={9}
         contentContainerStyle={{ paddingBottom: cartCount > 0 ? 120 : space.xxl }}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={
+          buscando ? (
+            <View style={styles.vacio}>
+              <Text style={styles.vacioTitulo}>No encontramos «{query.trim()}»</Text>
+              <Text style={styles.vacioTexto}>
+                Prueba con una palabra sola — «quesito», «pan», «café».
+              </Text>
+            </View>
+          ) : null
+        }
       />
       <CartBar />
       <VariantSheet item={variantItem} onClose={() => setVariantItem(null)} />
@@ -388,6 +467,40 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.marfil,
+  },
+  searchBox: {
+    flex: 1,
+    backgroundColor: colors.paper,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
+    paddingHorizontal: space.md,
+  },
+  searchInput: {
+    height: 40,
+    color: colors.ink,
+    fontSize: 15,
+  },
+  searchCount: {
+    paddingHorizontal: space.lg,
+    paddingBottom: space.sm,
+    color: colors.inkSoft,
+    fontSize: 13,
+  },
+  vacio: {
+    paddingHorizontal: space.lg,
+    paddingTop: space.xxl,
+    gap: space.sm,
+  },
+  vacioTitulo: {
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  vacioTexto: {
+    color: colors.inkSoft,
+    fontSize: 14,
+    lineHeight: 20,
   },
   header: {
     paddingHorizontal: space.lg,
