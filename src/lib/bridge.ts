@@ -75,7 +75,8 @@ export async function getBridgeStores(): Promise<BridgeStore[]> {
   return Array.isArray(data.stores) ? data.stores : [];
 }
 
-export type BridgeCartLine = { itemId: string; qty: number };
+/** `variant` es el ÍNDICE 0-based de la variante, nunca la etiqueta. */
+export type BridgeCartLine = { itemId: string; qty: number; variant?: number };
 
 export type PayInput = {
   store: string;

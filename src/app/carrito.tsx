@@ -202,7 +202,16 @@ export default function CarritoScreen() {
     try {
       const { checkoutUrl } = await startOnlinePayment({
         store: storeId,
-        cart: cart.map((l) => ({ itemId: l.itemId, qty: l.qty })),
+        // El ÍNDICE de la variante va también acá. Sin él, los 18 artículos con
+        // tamaños (bandejas, pastelillos, mini quesitos) no se podían pagar en
+        // línea desde el app: el puente no puede adivinar si son 25 o 50 piezas
+        // sin cobrar el precio equivocado, así que los rechazaba. El camino de
+        // pago-al-recoger sí lo mandaba desde siempre; este se había quedado atrás.
+        cart: cart.map((l) => ({
+          itemId: l.itemId,
+          qty: l.qty,
+          ...(l.variantIndex != null ? { variant: l.variantIndex } : {}),
+        })),
         customer: { name: trimmedName },
         ...(pickupValid && pickupTime ? { pickupTime } : {}),
         // Sin la fecha el puente imprime el ticket HOY, no el día de la recogida.
