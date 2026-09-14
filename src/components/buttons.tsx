@@ -21,8 +21,20 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { PressableScale } from '@/components/motion';
 import { colors, fonts, naranjaGradient, radius, textSize } from '@/lib/theme';
 
-/** Fondo con gradiente naranja para slabs primarios (svg, sin deps nuevas). */
-export function GradientSlab({ borderRadius = radius.btnLg }: { borderRadius?: number }) {
+/**
+ * Fondo con gradiente para slabs primarios (svg, sin deps nuevas).
+ *
+ * `stops` se añadió el 14 sep 2026 para los CTA verdes de Inicio. Por
+ * defecto sigue siendo el naranja de siempre, así que ninguna llamada
+ * existente cambia.
+ */
+export function GradientSlab({
+  borderRadius = radius.btnLg,
+  stops = naranjaGradient,
+}: {
+  borderRadius?: number;
+  stops?: readonly [string, string];
+}) {
   const rawId = useId();
   const id = `grad${rawId.replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
@@ -30,8 +42,8 @@ export function GradientSlab({ borderRadius = radius.btnLg }: { borderRadius?: n
       <Svg width="100%" height="100%">
         <Defs>
           <LinearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={naranjaGradient[0]} />
-            <Stop offset="100%" stopColor={naranjaGradient[1]} />
+            <Stop offset="0%" stopColor={stops[0]} />
+            <Stop offset="100%" stopColor={stops[1]} />
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />

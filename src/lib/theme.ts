@@ -52,8 +52,6 @@ export const colors = {
   /** chip/pastilla frost sobre foto (0.94 y 0.92 son candidatos a fundirse) */
   frostChip: 'rgba(255, 255, 255, 0.94)',
   frostBar: 'rgba(255, 255, 255, 0.92)',
-  /** CTA oscuro translúcido sobre foto ("ESCANEA EN TIENDA") */
-  inkFrost: 'rgba(26, 19, 10, 0.6)',
   /** puntito inactivo del slideshow */
   dotOnPhoto: 'rgba(255, 255, 255, 0.45)',
 } as const;
@@ -156,6 +154,13 @@ export const tracking = {
 // nunca bordes/outlines. btn=10 normal, btnLg=12 para flotantes/grandes.
 // Las etiquetas y badges SÍ pueden seguir siendo pill — solo los botones no.
 /*
+ * EXCEPCIÓN (cliente, 14 sep 2026): los dos CTA grandes de Inicio — "Ordena
+ * ahora" y "Escanea en tienda" — van OVALADOS (radius.pill), pedidos así por
+ * el cliente con la app de Pura Vida delante. Es la única excepción viva a la
+ * regla de abajo: el resto de los botones de la app siguen siendo slabs. Si
+ * algún día se extiende a toda la app, lo que cambia es `btn`/`btnLg`, no
+ * esta nota.
+ *
  * Casi a escuadra (Jan, 4 sep 2026) — el mismo giro que se le dio al sitio.
  * "Casi" y no 0 a propósito: 2–4px mantiene el canto legible en pantalla
  * (una esquina de 0 sobre foto se ve dentada en densidades @3x) y sigue
@@ -176,6 +181,22 @@ export const radius = {
 
 /** Gradiente del botón primario (naranja → naranja-luz, diagonal). */
 export const naranjaGradient = ['#EF5324', '#F5794A'] as const;
+
+/**
+ * Gradiente VERDE para los CTA de Inicio (cliente, 14 sep 2026: "que sean
+ * color verde").
+ *
+ * No son `verde` ni `verdeInk` del sistema, y la razón es el texto encima.
+ * Estos botones llevan blanco, y el blanco sobre `verde` (#0E9B72) da 3.5:1
+ * — por debajo del 4.5:1 que exige un texto de 13px. Las dos paradas de aquí
+ * están escogidas para que AMBAS pasen con el texto blanco:
+ *
+ *     #0A6046 → 7.47:1     #0C7E5B → 5.07:1
+ *
+ * Sigue siendo la menta de la marca, solo que la sombra que aguanta blanco.
+ * Si alguien clarea estas paradas, el texto tiene que dejar de ser blanco.
+ */
+export const verdeGradient = ['#0A6046', '#0C7E5B'] as const;
 
 export const space = {
   xs: 4,

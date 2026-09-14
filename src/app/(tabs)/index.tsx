@@ -16,10 +16,11 @@ import { HeroSlideshow } from '@/components/hero-slideshow';
 import { StoreChip, StoreSheet } from '@/components/store-sheet';
 import { getOrderStatus, type OrderStatusName } from '@/lib/api';
 import { money } from '@/lib/format';
+import { expiryNotice } from '@/lib/rewards';
 import { SECTION_IMAGES } from '@/lib/section-images';
 import { useApp } from '@/lib/state';
 import { tagline } from '@/lib/taglines';
-import { colors, fonts, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
+import { colors, fonts, radius, shadowCard, space, textSize, tracking, verdeGradient } from '@/lib/theme';
 
 const STATUS_LABEL: Record<OrderStatusName, string> = {
   nueva: 'Recibida',
@@ -103,6 +104,9 @@ export default function InicioScreen() {
     else router.push('/ordenar');
   };
 
+  /* Aviso de vencimiento (cliente, 14 sep 2026). Solo sale a falta de un mes
+     o menos; el resto del año no hay banda ninguna. Ver lib/rewards.ts. */
+  const aviso = expiryNotice(card);
   const stampsLeft = card ? Math.max(0, card.goal - card.stamps) : null;
   const firstReward = card?.rewards[0] ?? null;
   const showEncouragement =
@@ -190,6 +194,21 @@ export default function InicioScreen() {
             </Pressable>
           ) : null}
 
+          {aviso ? (
+            <Pressable
+              onPress={() => router.push('/qr')}
+              accessibilityRole="button"
+              accessibilityLabel={`${aviso.title}. ${aviso.hint}. Ver mi tarjeta`}
+              style={({ pressed }) => [styles.venceChip, pressed && { opacity: 0.85 }]}
+            >
+              <View style={styles.venceBar} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.venceTitle}>{aviso.title}</Text>
+                <Text style={styles.venceHint}>{aviso.hint}</Text>
+              </View>
+            </Pressable>
+          ) : null}
+
           {firstReward ? (
             <Pressable
               onPress={() => router.push('/qr')}
@@ -248,23 +267,30 @@ export default function InicioScreen() {
               <Text style={styles.repeatTotal}>{money(lastOrder.total)}</Text>
             </Pressable>
           ) : null}
+          {/* Los dos CTA: verdes y ovalados (cliente, 14 sep 2026, con la app
+              de Pura Vida delante). Van como PAREJA igualada — mismo verde,
+              mismo óvalo — igual que en la referencia; lo único que separa
+              al primario es la sombra verde que lo levanta de la foto.
+              El texto es blanco, y por eso el gradiente es el oscuro de
+              theme.ts y no la menta del sistema (ver verdeGradient). */}
           <View style={styles.ctaRow}>
             <Pressable
               onPress={() => router.push('/ordenar')}
               accessibilityRole="button"
               accessibilityLabel="Ordena ahora"
-              style={({ pressed }) => [styles.cta, pressed && { transform: [{ scale: 0.97 }] }]}
+              style={({ pressed }) => [styles.cta, styles.ctaLift, pressed && { transform: [{ scale: 0.97 }] }]}
             >
-              <GradientSlab borderRadius={radius.btnLg} />
-              <Text style={styles.ctaPrimaryText}>Ordena ahora</Text>
+              <GradientSlab borderRadius={radius.pill} stops={verdeGradient} />
+              <Text style={styles.ctaLabel}>Ordena ahora</Text>
             </Pressable>
             <Pressable
               onPress={() => router.push('/qr')}
               accessibilityRole="button"
               accessibilityLabel="Escanea en tienda: abre tu QR de Horno Rewards"
-              style={({ pressed }) => [styles.cta, styles.ctaFrosted, pressed && { transform: [{ scale: 0.97 }] }]}
+              style={({ pressed }) => [styles.cta, pressed && { transform: [{ scale: 0.97 }] }]}
             >
-              <Text style={styles.ctaFrostedText}>Escanea en tienda</Text>
+              <GradientSlab borderRadius={radius.pill} stops={verdeGradient} />
+              <Text style={styles.ctaLabel}>Escanea en tienda</Text>
             </Pressable>
           </View>
         </View>
@@ -390,6 +416,36 @@ const styles = StyleSheet.create({
     fontSize: textSize.small,
     color: colors.verdeInk,
   },
+  /* Banda de vencimiento. Blanca como el resto de lo que flota sobre la foto,
+     con un filo naranja a la izquierda: se distingue del chip de orden activa
+     sin gritar. Naranja y no rojo — es un recordatorio de pasar por la
+     panadería, no un error. */
+  venceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: colors.frostChip,
+    borderRadius: radius.btn,
+    paddingRight: space.md,
+    paddingVertical: 10,
+    overflow: 'hidden',
+  },
+  venceBar: {
+    width: 4,
+    alignSelf: 'stretch',
+    backgroundColor: colors.naranja,
+  },
+  venceTitle: {
+    fontFamily: fonts.uiSemi,
+    fontSize: textSize.small,
+    color: colors.ink,
+  },
+  venceHint: {
+    fontFamily: fonts.ui,
+    fontSize: textSize.caption,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
   rewardCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -454,23 +510,21 @@ const styles = StyleSheet.create({
   cta: {
     flex: 1,
     minHeight: 58,
-    borderRadius: radius.btnLg,
+    // Óvalo, no slab: única excepción a la regla de botones (ver theme.ts).
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.md,
   },
-  ctaPrimaryText: {
-    fontFamily: fonts.uiBold,
-    fontSize: textSize.small,
-    letterSpacing: tracking.wide,
-    textTransform: 'uppercase',
-    color: colors.ink,
-    textAlign: 'center',
+  /** Lo único que distingue al primario de su gemelo: se despega de la foto. */
+  ctaLift: {
+    shadowColor: '#0A6046',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.34,
+    shadowRadius: 14,
+    elevation: 6,
   },
-  ctaFrosted: {
-    backgroundColor: colors.inkFrost,
-  },
-  ctaFrostedText: {
+  ctaLabel: {
     fontFamily: fonts.uiBold,
     fontSize: textSize.small,
     letterSpacing: tracking.wide,

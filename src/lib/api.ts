@@ -23,6 +23,17 @@ export type RewardsCard = {
    * servidor — deploys viejos no lo mandan, así que siempre es opcional.
    */
   history?: CardHistoryEntry[];
+  /**
+   * Cuándo vencen los sellos de esta tarjeta (ms epoch). `null` cuando la
+   * tarjeta está en 0 — no hay nada que vencer — y `undefined` si el
+   * servidor todavía no lo manda. Los dos casos se pintan igual: sin aviso.
+   *
+   * El reloj cuelga del ÚLTIMO sello y son 2 meses, así que cada compra se
+   * lo lleva entero hacia adelante.
+   */
+  stampsExpireAt?: number | null;
+  /** Fecha de caducidad por código de premio. Ese reloj NO se renueva. */
+  rewardsExpireAt?: Record<string, number>;
 };
 
 export type OrderStatusName = 'nueva' | 'preparando' | 'lista' | 'entregada' | 'cancelada';

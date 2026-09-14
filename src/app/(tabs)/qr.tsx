@@ -37,7 +37,8 @@ import {
   walletPassUrl,
   type CardHistoryEntry,
 } from '@/lib/api';
-import { relativeDate } from '@/lib/format';
+import { longDate, relativeDate } from '@/lib/format';
+import { MESES_SELLOS, stampsExpiry } from '@/lib/rewards';
 import { useApp } from '@/lib/state';
 import { getStore } from '@/lib/stores';
 import { colors, fonts, radius, shadowCard, space, textSize, tracking } from '@/lib/theme';
@@ -48,6 +49,9 @@ const K_REWARDS_SEEN = 'hf.rewardsSeen';
 function viaCopy(via: CardHistoryEntry['via']): string {
   if (via === 'orden') return 'por orden en línea';
   if (via === 'caja') return 'sello en caja';
+  // Una tarjeta que amanece en 0 tiene que poder explicarse sola: sin esta
+  // línea parece que el app perdió los sellos.
+  if (via === 'vencido') return 'sellos vencidos';
   return 'sello';
 }
 
@@ -282,6 +286,7 @@ export default function QrScreen() {
 
   const qrSize = Math.min(width - space.lg * 2 - space.xl * 2, 224);
   const cardFull = card != null && card.stamps >= card.goal;
+  const vencenSellos = stampsExpiry(card);
 
   return (
     <KeyboardAvoidingView
@@ -371,6 +376,15 @@ export default function QrScreen() {
               ) : (
                 <Text style={styles.progressCopy}>{stampsCopy(card.stamps, card.goal)}</Text>
               )}
+              {/* La fecha vive AQUÍ siempre que haya sellos (en Inicio solo
+                  sale a falta de un mes). Esta es la pantalla donde alguien
+                  viene a mirar su tarjeta de verdad: aquí el dato completo
+                  informa, no presiona. */}
+              {vencenSellos ? (
+                <Text style={styles.venceCopy}>
+                  Vencen el {longDate(vencenSellos)} · cada sello nuevo renueva la tarjeta {MESES_SELLOS} meses
+                </Text>
+              ) : null}
             </View>
 
             {/* ——— Billetera de premios ——— */}
@@ -398,6 +412,11 @@ export default function QrScreen() {
                       <Text style={styles.rewardHow}>
                         Muéstralo en caja para canjear tu quesito gratis
                       </Text>
+                      {card.rewardsExpireAt?.[code] ? (
+                        <Text style={styles.rewardVence}>
+                          Vence el {longDate(card.rewardsExpireAt[code])} — este no se renueva
+                        </Text>
+                      ) : null}
                     </View>
                   );
                 })}
@@ -514,6 +533,14 @@ const styles = StyleSheet.create({
     color: colors.verdeInk,
     textAlign: 'center',
   },
+  venceCopy: {
+    marginTop: space.sm,
+    fontFamily: fonts.ui,
+    fontSize: textSize.caption,
+    lineHeight: 17,
+    color: colors.inkSoft,
+    textAlign: 'center',
+  },
   // Banner "tarjeta llena": superficie menta, texto INK (regla 2).
   fullBanner: {
     backgroundColor: colors.menta,
@@ -584,6 +611,12 @@ const styles = StyleSheet.create({
     fontSize: textSize.small,
     lineHeight: 19,
     color: colors.ink,
+  },
+  rewardVence: {
+    marginTop: space.xs,
+    fontFamily: fonts.uiSemi,
+    fontSize: textSize.caption,
+    color: colors.naranjaInk,
   },
   redeemed: {
     marginTop: space.lg,

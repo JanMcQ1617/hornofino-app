@@ -50,6 +50,22 @@ export function relativeDate(ts: number): string {
   return `${d.getDate()} ${meses[d.getMonth()]}${year}`;
 }
 
+/**
+ * Fecha larga pa' vencimientos: "12 de marzo", y con año cuando cae en otro
+ * ("12 de marzo de 2027"). Escrita a mano y no con Intl: los meses cortos ya
+ * viven aquí arriba y toLocaleDateString('es-PR') no está garantizado en
+ * Hermes sin el build con ICU completo.
+ */
+export function longDate(ts: number): string {
+  const meses = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  ];
+  const d = new Date(ts);
+  const year = d.getFullYear() !== new Date().getFullYear() ? ` de ${d.getFullYear()}` : '';
+  return `${d.getDate()} de ${meses[d.getMonth()]}${year}`;
+}
+
 /** "2× Quesito Regular · 1× Latte 12 oz" (máx 3, luego "+2 más"). */
 export function summarizeLines(
   lines: { qty: number; name: string }[],
